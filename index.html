@@ -124,6 +124,13 @@
     margin:0 0 5px;
   }
   label .req{color:var(--danger);}
+  label .opt{
+    color:var(--text-dim);
+    font-weight:400;
+    font-size:10.5px;
+    text-transform:none;
+    letter-spacing:0;
+  }
   input[type=text], input[type=date], input[type=number], input[type=tel], textarea, select{
     width:100%;
     padding:9px 10px;
@@ -222,6 +229,17 @@
   }
   @media(max-width:700px){.item-grid{grid-template-columns:1fr 1fr;}}
   .item-grid label{font-size:10.5px;margin-bottom:3px;}
+
+  /* ref (RW/MA/APAC) table -- pattern sama macam item-row, grid berlainan */
+  .ref-grid{
+    display:grid;
+    grid-template-columns:1.1fr 1fr 1.3fr auto;
+    gap:8px;
+    align-items:end;
+  }
+  @media(max-width:700px){.ref-grid{grid-template-columns:1fr 1fr;}}
+  .ref-grid label{font-size:10.5px;margin-bottom:3px;}
+
   .btn-remove{
     background:var(--card);
     border:1px solid var(--danger);
@@ -368,21 +386,11 @@
 
     <div class="card">
       <h2 data-i18n="sec_do_info">Maklumat DO</h2>
-      <div class="grid3">
-        <div class="field">
-          <label data-i18n="lbl_no_rw">No RW <span class="req">*</span></label>
-          <input type="text" id="noRW" data-i18n-placeholder="ph_no_rw" placeholder="cth: RW2606230802" required>
-        </div>
-        <div class="field">
-          <label data-i18n="lbl_no_ma">No MA <span class="req">*</span></label>
-          <input type="text" id="noMA" data-i18n-placeholder="ph_no_ma" placeholder="cth: MA2606230354" required>
-        </div>
-        <div class="field">
-          <label data-i18n="lbl_apac">APAC Ticket</label>
-          <input type="text" id="apacTicket" placeholder="260515024031597">
-        </div>
-      </div>
-      <div class="preview-box">
+
+      <div id="refsContainer"></div>
+      <button type="button" class="btn-add" id="addRefBtn" data-i18n="btn_add_ref">+ Tambah RW / MA / APAC</button>
+
+      <div class="preview-box" style="margin-top:14px;">
         <label data-i18n="lbl_do_no_auto">No. DO (Auto)</label>
         <div class="preview-value" id="doNoPreview">—</div>
       </div>
@@ -469,10 +477,11 @@
 // =====================================================================
 // TUKAR URL NI lepas deploy Apps Script sebagai Web App
 // =====================================================================
-const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzQRu6AiCDnnZbqZkv9EqT9raOUbPGheL123yQdFfSHknnYny6x_2YzSlfsWFRyP-49iA/exec';
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbz8_8ukZj6NJH0DhT5yK-dJEc1TmRmwvjBkQZDTANhBvHx9hSkiyZj_tV5tlavWIqEWQw/exec';
 
 const UNIT_OPTIONS = ['PCS','UNIT','SET','BOX','PALLET','KG'];
 let itemCount = 0;
+let refCount = 0;
 let currentLang = 'ms';
 let currentTheme = 'light';
 
@@ -515,6 +524,7 @@ const I18N = {
     lbl_note: 'Note',
     lbl_signer: 'Nama Pengesah / Signer',
     btn_add_item: '+ Tambah Item',
+    btn_add_ref: '+ Tambah RW / MA / APAC',
     btn_submit: 'Jana DO & Simpan Rekod',
     btn_submit_loading: 'Sedang jana DO...',
     btn_download_pdf: 'Muat Turun PDF',
@@ -523,14 +533,17 @@ const I18N = {
     result_title: 'DO berjaya dijana',
     result_prefix: 'No. DO:',
     ph_no_rw: 'cth: RW2606230802',
-    ph_no_ma: 'cth: MA2606230354',
+    ph_no_ma: 'cth: MA2606230354 (optional)',
     ph_truck: 'cth: - atau no. plat',
     ph_note: 'Nota tambahan (jika ada)',
     ph_signer: 'Nama authorized signer',
     item_label: 'Item',
+    ref_label: 'Rujukan',
     err_webapp_not_set: 'WEBAPP_URL belum diisi dalam kod. Sila deploy Apps Script dulu & update index.html.',
     err_items_required: 'Sekurang-kurangnya 1 item diperlukan.',
     err_item_fields: 'Sila lengkapkan semua field dalam senarai barang.',
+    err_refs_required: 'Sekurang-kurangnya 1 rujukan RW diperlukan.',
+    err_ref_rw_required: 'Sila lengkapkan No RW untuk setiap rujukan (#',
     err_server_prefix: 'Gagal hubungi server:',
     err_unknown: 'Ralat tidak diketahui.',
     theme_dark: 'Dark',
@@ -563,6 +576,7 @@ const I18N = {
     lbl_note: 'Note',
     lbl_signer: 'Signer Name',
     btn_add_item: '+ Add Item',
+    btn_add_ref: '+ Add RW / MA / APAC',
     btn_submit: 'Generate DO & Save Record',
     btn_submit_loading: 'Generating DO...',
     btn_download_pdf: 'Download PDF',
@@ -571,14 +585,17 @@ const I18N = {
     result_title: 'DO generated successfully',
     result_prefix: 'DO No.:',
     ph_no_rw: 'e.g. RW2606230802',
-    ph_no_ma: 'e.g. MA2606230354',
+    ph_no_ma: 'e.g. MA2606230354 (optional)',
     ph_truck: 'e.g. - or plate no.',
     ph_note: 'Additional notes (if any)',
     ph_signer: "Authorized signer's name",
     item_label: 'Item',
+    ref_label: 'Reference',
     err_webapp_not_set: 'WEBAPP_URL is not set in the code yet. Deploy Apps Script first & update index.html.',
     err_items_required: 'At least 1 item is required.',
     err_item_fields: 'Please complete all fields in the item list.',
+    err_refs_required: 'At least 1 RW reference is required.',
+    err_ref_rw_required: 'Please fill in RW No. for reference #',
     err_server_prefix: 'Failed to reach server:',
     err_unknown: 'Unknown error.',
     theme_dark: 'Dark',
@@ -594,10 +611,12 @@ function applyLanguage(){
   document.documentElement.lang = currentLang;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    // kekalkan span.req (*) yang ada dalam sesetengah label
+    // kekalkan span.req (*) dan span.opt (optional) yang ada dalam sesetengah label
     const reqSpan = el.querySelector('.req');
+    const optSpan = el.querySelector('.opt');
     el.textContent = t(key);
     if (reqSpan) el.appendChild(reqSpan);
+    if (optSpan) el.appendChild(optSpan);
   });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
@@ -609,6 +628,7 @@ document.getElementById('langToggle').addEventListener('click', () => {
   currentLang = currentLang === 'ms' ? 'en' : 'ms';
   applyLanguage();
   renumberItems();
+  renumberRefs();
   applyTheme();
 });
 
@@ -630,6 +650,65 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   applyTheme();
 });
+
+// ---------------- REF ROWS (No RW / No MA / APAC Ticket) ----------------
+// RW WAJIB setiap row. MA & APAC Ticket OPTIONAL setiap row (termasuk row
+// pertama) — boleh tambah lebih dari satu rujukan dalam SATU DO tanpa kena
+// paksa isi MA/APAC sekali.
+function addRefRow(){
+  refCount++;
+  const idx = refCount;
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <span class="item-tag">${t('ref_label')} ${idx}</span>
+    <div class="ref-grid">
+      <div><label data-i18n="lbl_no_rw">${t('lbl_no_rw')} <span class="req">*</span></label><input type="text" class="f-rw" placeholder="${t('ph_no_rw')}" required></div>
+      <div><label data-i18n="lbl_no_ma">${t('lbl_no_ma')} <span class="opt">(optional)</span></label><input type="text" class="f-ma" placeholder="${t('ph_no_ma')}"></div>
+      <div><label data-i18n="lbl_apac">${t('lbl_apac')} <span class="opt">(optional)</span></label><input type="text" class="f-apac" placeholder="260515024031597"></div>
+      <button type="button" class="btn-remove" title="Remove">&times;</button>
+    </div>
+  `;
+  document.getElementById('refsContainer').appendChild(div);
+
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    renumberRefs();
+    updateDoNoPreview();
+  });
+  div.querySelector('.f-rw').addEventListener('input', updateDoNoPreview);
+  div.querySelector('.f-ma').addEventListener('input', updateDoNoPreview);
+}
+
+function renumberRefs(){
+  const rows = document.querySelectorAll('#refsContainer .item-row');
+  rows.forEach((row, i) => {
+    row.querySelector('.item-tag').textContent = t('ref_label') + ' ' + (i + 1);
+  });
+  document.querySelectorAll('#refsContainer .btn-remove').forEach(btn => {
+    btn.disabled = rows.length <= 1;
+  });
+}
+
+document.getElementById('addRefBtn').addEventListener('click', () => {
+  addRefRow();
+  renumberRefs();
+  updateDoNoPreview();
+});
+
+function collectRefs(){
+  const rows = document.querySelectorAll('#refsContainer .item-row');
+  const refs = [];
+  for (const row of rows){
+    refs.push({
+      rw: row.querySelector('.f-rw').value.trim(),
+      ma: row.querySelector('.f-ma').value.trim(),
+      apacTicket: row.querySelector('.f-apac').value.trim()
+    });
+  }
+  return refs;
+}
 
 // ---------------- ITEM ROWS ----------------
 function addItemRow(){
@@ -665,11 +744,11 @@ function addItemRow(){
 }
 
 function renumberItems(){
-  const rows = document.querySelectorAll('.item-row');
+  const rows = document.querySelectorAll('#itemsContainer .item-row');
   rows.forEach((row, i) => {
     row.querySelector('.item-tag').textContent = t('item_label') + ' ' + (i + 1);
   });
-  document.querySelectorAll('.btn-remove').forEach(btn => {
+  document.querySelectorAll('#itemsContainer .btn-remove').forEach(btn => {
     btn.disabled = rows.length <= 1;
   });
 }
@@ -681,6 +760,9 @@ document.getElementById('addItemBtn').addEventListener('click', () => {
 });
 
 // ---------------- AUTO DO NO ----------------
+// DO No dibina dari rujukan PERTAMA sahaja (RW wajib, MA optional). Rujukan
+// ke-2 dst cuma jadi rujukan tambahan (papar kat jadual PDF & Database),
+// TAK masuk dalam DO No supaya convention Sungrow sedia ada tak berubah.
 function normalizePart(val, prefix){
   let s = String(val || '').trim().toUpperCase();
   if (s && s.indexOf(prefix) !== 0) s = prefix + s;
@@ -688,21 +770,27 @@ function normalizePart(val, prefix){
 }
 
 function updateDoNoPreview(){
-  const rw = document.getElementById('noRW').value.trim();
-  const ma = document.getElementById('noMA').value.trim();
   const preview = document.getElementById('doNoPreview');
-  if (!rw || !ma){
+  const firstRow = document.querySelector('#refsContainer .item-row');
+  if (!firstRow){
     preview.textContent = '—';
     return;
   }
-  preview.textContent = normalizePart(rw,'RW') + '_' + normalizePart(ma,'MA') + '_JD';
+  const rw = firstRow.querySelector('.f-rw').value.trim();
+  const ma = firstRow.querySelector('.f-ma').value.trim();
+  if (!rw){
+    preview.textContent = '—';
+    return;
+  }
+  let doNo = normalizePart(rw,'RW');
+  if (ma) doNo += '_' + normalizePart(ma,'MA');
+  doNo += '_JD';
+  preview.textContent = doNo;
 }
-document.getElementById('noRW').addEventListener('input', updateDoNoPreview);
-document.getElementById('noMA').addEventListener('input', updateDoNoPreview);
 
 // ---------------- AUTO TOTAL CARTON/PALLET ----------------
 function updateTotalCartonPreview(){
-  const rows = document.querySelectorAll('.item-row');
+  const rows = document.querySelectorAll('#itemsContainer .item-row');
   const groups = {};
   const order = [];
   rows.forEach(row => {
@@ -721,9 +809,12 @@ function updateTotalCartonPreview(){
 }
 
 // ---------------- INIT ----------------
+addRefRow();
+renumberRefs();
 addItemRow();
 renumberItems();
 updateTotalCartonPreview();
+updateDoNoPreview();
 document.getElementById('date').valueAsDate = new Date();
 applyLanguage();
 applyTheme();
@@ -741,7 +832,7 @@ function clearMsg(){
 }
 
 function collectItems(){
-  const rows = document.querySelectorAll('.item-row');
+  const rows = document.querySelectorAll('#itemsContainer .item-row');
   const items = [];
   for (const row of rows){
     items.push({
@@ -763,6 +854,18 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
     return;
   }
 
+  const refs = collectRefs();
+  if (refs.length === 0){
+    showMsg(t('err_refs_required'), 'err');
+    return;
+  }
+  for (let i = 0; i < refs.length; i++){
+    if (!refs[i].rw){
+      showMsg(t('err_ref_rw_required') + (i + 1) + ')', 'err');
+      return;
+    }
+  }
+
   const items = collectItems();
   if (items.length === 0){
     showMsg(t('err_items_required'), 'err');
@@ -776,10 +879,8 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
   }
 
   const payload = {
-    noRW: document.getElementById('noRW').value.trim(),
-    noMA: document.getElementById('noMA').value.trim(),
+    refs: refs,
     date: document.getElementById('date').value,
-    apacTicket: document.getElementById('apacTicket').value.trim(),
     fromName: FIXED_FROM.name,
     fromAddress: FIXED_FROM.address,
     fromAttn: FIXED_FROM.attn,
@@ -826,7 +927,11 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
 document.getElementById('againBtn').addEventListener('click', () => {
   document.getElementById('doForm').reset();
   document.getElementById('itemsContainer').innerHTML = '';
+  document.getElementById('refsContainer').innerHTML = '';
   itemCount = 0;
+  refCount = 0;
+  addRefRow();
+  renumberRefs();
   addItemRow();
   renumberItems();
   updateTotalCartonPreview();
