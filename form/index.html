@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ms" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DO Generator — Sungrow</title>
+<style>
+  :root{
+    --navy:#16233F;
+    --navy-2:#1F3358;
+    --accent:#D6862B;
+    --accent-2:#B96F1E;
+    --bg:#F4F5F7;
+    --card:#FFFFFF;
+    --line:#E2E5EA;
+    --text:#1B2230;
+    --text-dim:#6B7280;
+    --danger:#C0392B;
+    --danger-bg:#FDECEA;
+    --danger-line:#F5C6C1;
+    --ok:#1E7B4D;
+    --ok-bg:#E9F7EF;
+    --ok-line:#B7E4CA;
+    --preview-bg:#FBF6EE;
+    --preview-line:#EAD9B8;
+    --input-bg:#FFFFFF;
+    --radius:10px;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  html[data-theme="dark"]{
+    --navy:#0E1830;
+    --navy-2:#16233F;
+    --accent:#E39A4C;
+    --accent-2:#F0AD5F;
+    --bg:#0B0F1A;
+    --card:#141B2C;
+    --line:#2A3550;
+    --text:#E7EAF2;
+    --text-dim:#93A0B8;
+    --danger:#E17E72;
+    --danger-bg:#341E1E;
+    --danger-line:#5A2E2A;
+    --ok:#5FD196;
+    --ok-bg:#173226;
+    --ok-line:#295A41;
+    --preview-bg:#241C10;
+    --preview-line:#4A3A1C;
+    --input-bg:#0F1524;
+  }
+  *{box-sizing:border-box;}
+  
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 16px 60px;
+    transition:background .2s ease, color .2s ease;
+  }
+  .wrap{max-width:820px;margin:0 auto;}
+
+  header{
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));
+    border-radius:var(--radius);
+    padding:22px 24px;
+    color:#fff;
+    margin-bottom:20px;
+    position:relative;
+    overflow:hidden;
+  }
+  header::after{
+    content:"";
+    position:absolute;
+    right:-40px;top:-40px;
+    width:160px;height:160px;
+    border:2px dashed rgba(255,255,255,0.15);
+    border-radius:50%;
+  }
+  .header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;position:relative;z-index:1;}
+  header h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.2px;}
+  header p{margin:4px 0 0;font-size:12.5px;color:#C9D2E3;}
+
+  .controls{display:flex;gap:8px;flex-shrink:0;}
+  .pill-btn{
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.25);
+    color:#fff;
+    border-radius:20px;
+    padding:6px 12px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+  }
+  .pill-btn:hover{background:rgba(255,255,255,.22);}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:20px;
+    margin-bottom:16px;
+    transition:background .2s ease, border-color .2s ease;
+  }
+  .card h2{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:.6px;
+    color:var(--accent-2);
+    margin:0 0 14px;
+    padding-bottom:8px;
+    border-bottom:1px dashed var(--line);
+  }
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  @media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+  label{
+    display:block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-dim);
+    margin:0 0 5px;
+  }
+  label .req{color:var(--danger);}
+  label .opt{
+    color:var(--text-dim);
+    font-weight:400;
+    font-size:10.5px;
+    text-transform:none;
+    letter-spacing:0;
+  }
+  input[type=text], input[type=date], input[type=number], input[type=tel], textarea, select{
+    width:100%;
+    padding:9px 10px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    font-size:14px;
+    color:var(--text);
+    background:var(--input-bg);
+    font-family:inherit;
+  }
+  input:focus, textarea:focus, select:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(214,134,43,.15);
+  }
+  textarea{resize:vertical;min-height:54px;}
+  .field{margin-bottom:12px;}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:600px){.two-col{grid-template-columns:1fr;gap:0;}}
+  
+  .subblock h3{
+    font-size:12.5px;
+    font-weight:700;
+    color:var(--text);
+    margin:0 0 10px;
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .fixed-tag{
+    font-size:10.5px;
+    font-weight:600;
+    color:var(--text-dim);
+    background:var(--bg);
+    border:1px solid var(--line);
+    padding:2px 8px;
+    border-radius:20px;
+    margin-left:7px;
+    text-transform:none;
+    letter-spacing:0;
+  }
+
+  .preview-box{
+    background:var(--preview-bg);
+    border:1px dashed var(--preview-line);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-top:2px;
+  }
+  .preview-box label{margin-bottom:3px;}
+  .preview-value{
+    font-family:"SFMono-Regular",Consolas,Menlo,monospace;
+    font-size:14.5px;
+    font-weight:700;
+    color:var(--accent-2);
+    word-break:break-all;
+  }
+
+  .from-fixed-box{
+    font-size:13.5px;
+    line-height:1.7;
+  }
+  .from-fixed-box .from-name{
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:3px;
+  }
+  .from-fixed-box .from-line{
+    color:var(--text-dim);
+  }
+
+  /* item table */
+  .item-row{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:12px;
+    margin-bottom:10px;
+    position:relative;
+    background:var(--bg);
+  }
+  .item-row .item-tag{
+    position:absolute;
+    top:-9px;left:10px;
+    background:var(--navy);
+    color:#fff;
+    font-size:10.5px;
+    font-weight:700;
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .item-grid{
+    display:grid;
+    grid-template-columns:1.2fr 2fr .8fr .9fr auto;
+    gap:8px;
+    align-items:end;
+  }
+  @media(max-width:700px){.item-grid{grid-template-columns:1fr 1fr;}}
+  .item-grid label{font-size:10.5px;margin-bottom:3px;}
+
+  /* ref (RW/MA/APAC) table -- pattern sama macam item-row, grid berlainan */
+  .ref-grid{
+    display:grid;
+    grid-template-columns:1.1fr 1fr 1.3fr auto;
+    gap:8px;
+    align-items:end;
+  }
+  @media(max-width:700px){.ref-grid{grid-template-columns:1fr 1fr;}}
+  .ref-grid label{font-size:10.5px;margin-bottom:3px;}
+
+  .btn-remove{
+    background:var(--card);
+    border:1px solid var(--danger);
+    color:var(--danger);
+    border-radius:7px;
+    height:36px;
+    width:36px;
+    cursor:pointer;
+    font-size:16px;
+    line-height:1;
+  }
+  .btn-remove:hover{background:var(--danger-bg);}
+  .btn-remove:disabled{opacity:.35;cursor:not-allowed;}
+
+  .btn-add{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:var(--card);
+    border:1.5px dashed var(--accent);
+    color:var(--accent-2);
+    font-weight:700;
+    font-size:13px;
+    padding:9px 14px;
+    border-radius:7px;
+    cursor:pointer;
+    margin-top:2px;
+  }
+  .btn-add:hover{background:var(--preview-bg);}
+
+  .total-box{
+    margin-top:14px;
+    background:var(--preview-bg);
+    border:1px dashed var(--preview-line);
+    border-radius:8px;
+    padding:12px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .total-box .lbl{font-size:12px;font-weight:700;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;}
+  .total-box .val{font-size:16px;font-weight:800;color:var(--accent-2);}
+
+  .actions{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    margin-top:18px;
+  }
+  .btn-submit{
+    flex:1;
+    background:var(--navy);
+    color:#fff;
+    border:none;
+    padding:14px;
+    font-size:15px;
+    font-weight:700;
+    border-radius:8px;
+    cursor:pointer;
+    letter-spacing:.2px;
+  }
+  .btn-submit:hover{background:var(--navy-2);}
+  .btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+
+  .msg{
+    border-radius:8px;
+    padding:12px 14px;
+    font-size:13.5px;
+    margin-top:14px;
+    display:none;
+  }
+  .msg.err{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-line);display:block;}
+  .msg.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line);display:block;}
+
+  .result{
+    display:none;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:24px;
+    text-align:center;
+  }
+  .result.show{display:block;}
+  .result .tick{
+    width:52px;height:52px;border-radius:50%;
+    background:var(--ok-bg);color:var(--ok);
+    display:flex;align-items:center;justify-content:center;
+    font-size:26px;margin:0 auto 12px;
+  }
+  .result h2{font-size:17px;margin:0 0 4px;border:none;padding:0;color:var(--text);text-transform:none;letter-spacing:0;}
+  .result p{color:var(--text-dim);font-size:13.5px;margin:0 0 18px;}
+  .dl-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+  .dl-btn{
+    text-decoration:none;
+    padding:11px 20px;
+    border-radius:7px;
+    font-weight:700;
+    font-size:14px;
+  }
+  .dl-pdf{background:var(--navy);color:#fff;}
+  .dl-xlsx{background:var(--card);color:var(--text);border:1.5px solid var(--navy);}
+  .again{
+    margin-top:20px;
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:13px;
+    text-decoration:underline;
+    cursor:pointer;
+  }
+
+  .spinner{
+    width:16px;height:16px;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    border-radius:50%;
+    display:inline-block;
+    animation:spin .7s linear infinite;
+    vertical-align:-3px;
+    margin-right:8px;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="header-top">
+      <div>
+        <h1>DO Generator — Sungrow Delivery Order</h1>
+        <p data-i18n="app_subtitle">Key in maklumat, sistem auto isi template DO & simpan rekod ke database.</p>
+      </div>
+      <div class="controls">
+        <button type="button" class="pill-btn" id="themeToggle" title="Tukar tema">🌙 <span id="themeLabel">Dark</span></button>
+        <button type="button" class="pill-btn" id="langToggle" title="Switch language">🌐 <span id="langLabel">EN</span></button>
+      </div>
+    </div>
+  </header>
+
+  <form id="doForm">
+
+    <div class="card">
+      <h2 data-i18n="sec_do_info">Maklumat DO</h2>
+
+      <div id="refsContainer"></div>
+      <button type="button" class="btn-add" id="addRefBtn" data-i18n="btn_add_ref">+ Tambah RW / MA / APAC</button>
+
+      <div class="preview-box" style="margin-top:14px;">
+        <label data-i18n="lbl_do_no_auto">No. DO (Auto)</label>
+        <div class="preview-value" id="doNoPreview">—</div>
+      </div>
+      <div class="field" style="margin-top:12px;">
+        <label data-i18n="lbl_date">Tarikh <span class="req">*</span></label>
+        <input type="date" id="date" required>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="sec_from_to">From &amp; To</h2>
+      <div class="two-col">
+        <div class="subblock">
+          <h3>
+            <span data-i18n="lbl_from_title">From (Penghantar)</span>
+            <span class="fixed-tag" data-i18n="lbl_fixed">(Tetap)</span>
+          </h3>
+          <!-- From dikunci — JingDong Logistics sentiasa jadi penghantar tetap, tak boleh diubah dalam form -->
+          <div class="preview-box from-fixed-box">
+            <div class="from-name">JingDong Logistics</div>
+            <div class="from-line">2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor</div>
+            <div class="from-line"><span data-i18n="lbl_attn">ATTN</span>: Prema Mahalingam</div>
+            <div class="from-line"><span data-i18n="lbl_tel">Tel</span>: 6012-396 1012</div>
+          </div>
+        </div>
+        <div class="subblock">
+          <h3 data-i18n="lbl_to_title">To (Penerima)</h3>
+          <div class="field"><label data-i18n="lbl_company">Nama Syarikat <span class="req">*</span></label>
+            <input type="text" id="toName" required></div>
+          <div class="field"><label data-i18n="lbl_address">Alamat</label>
+            <textarea id="toAddress"></textarea></div>
+          <div class="field"><label data-i18n="lbl_attn">ATTN</label>
+            <input type="text" id="toAttn"></div>
+          <div class="field"><label data-i18n="lbl_tel">Tel</label>
+            <input type="text" id="toTel"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="sec_items">Senarai Barang</h2>
+      <div id="itemsContainer"></div>
+      <button type="button" class="btn-add" id="addItemBtn" data-i18n="btn_add_item">+ Tambah Item</button>
+
+      <div class="total-box">
+        <span class="lbl" data-i18n="lbl_total_carton_auto">Total Carton / Pallet (Auto)</span>
+        <span class="val" id="totalCartonPreview">—</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="sec_additional">Maklumat Tambahan</h2>
+      <div class="grid2">
+        <div class="field"><label data-i18n="lbl_truck">Truck</label>
+          <input type="text" id="truck" data-i18n-placeholder="ph_truck" placeholder="cth: - atau no. plat"></div>
+        <div class="field"><label data-i18n="lbl_signer">Nama Pengesah / Signer <span class="req">*</span></label>
+          <input type="text" id="signer" data-i18n-placeholder="ph_signer" placeholder="Nama authorized signer" required></div>
+      </div>
+      <div class="field"><label data-i18n="lbl_note">Note</label>
+        <textarea id="note" data-i18n-placeholder="ph_note" placeholder="Nota tambahan (jika ada)"></textarea></div>
+    </div>
+
+    <div class="msg" id="msgBox"></div>
+
+    <div class="actions">
+      <button type="submit" class="btn-submit" id="submitBtn" data-i18n="btn_submit">Jana DO &amp; Simpan Rekod</button>
+    </div>
+  </form>
+
+  <div class="result" id="resultBox">
+    <div class="tick">✓</div>
+    <h2 data-i18n="result_title">DO berjaya dijana</h2>
+    <p id="resultDoNo"></p>
+    <div class="dl-row">
+      <a href="#" id="pdfLink" class="dl-btn dl-pdf" target="_blank" rel="noopener" data-i18n="btn_download_pdf">Muat Turun PDF</a>
+      <a href="#" id="xlsxLink" class="dl-btn dl-xlsx" target="_blank" rel="noopener" data-i18n="btn_download_xlsx">Muat Turun Excel</a>
+    </div>
+    <div><button type="button" class="again" id="againBtn" data-i18n="btn_generate_new">+ Jana DO Baru</button></div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================================
+// TUKAR URL NI lepas deploy Apps Script sebagai Web App
+// =====================================================================
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzEYbtzlLNAcveQVQ3AKAzczcT5UDmvw6a605b55pTTsGM75WIyXAB_qhLGmvTi2PLH7Q/exec';
+
+const UNIT_OPTIONS = ['PCS','UNIT','SET','BOX','PALLET','KG'];
+let itemCount = 0;
+let refCount = 0;
+let currentLang = 'ms';
+let currentTheme = 'light';
+
+// ---------------- FIXED SENDER (From) ----------------
+// From sentiasa JingDong Logistics — tak boleh diubah dalam form.
+// Kalau nak tukar sender tetap ni suatu hari nanti, edit terus kat sini.
+const FIXED_FROM = {
+  name: 'JingDong Logistics',
+  address: '2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor',
+  attn: 'Prema Mahalingam',
+  tel: '6012-396 1012'
+};
+
+// ---------------- TRANSLATIONS ----------------
+const I18N = {
+  ms: {
+    app_subtitle: 'Key in maklumat, sistem auto isi template DO & simpan rekod ke database.',
+    sec_do_info: 'Maklumat DO',
+    sec_from_to: 'From & To',
+    sec_items: 'Senarai Barang',
+    sec_additional: 'Maklumat Tambahan',
+    lbl_no_rw: 'No RW',
+    lbl_no_ma: 'No MA',
+    lbl_do_no_auto: 'No. DO (Auto)',
+    lbl_apac: 'APAC Ticket',
+    lbl_date: 'Tarikh',
+    lbl_from_title: 'From (Penghantar)',
+    lbl_fixed: '(Tetap)',
+    lbl_to_title: 'To (Penerima)',
+    lbl_company: 'Nama Syarikat',
+    lbl_address: 'Alamat',
+    lbl_attn: 'ATTN',
+    lbl_tel: 'Tel',
+    lbl_product_code: 'Product Code',
+    lbl_description: 'Description',
+    lbl_qty: 'Qty',
+    lbl_unit: 'Unit',
+    lbl_total_carton_auto: 'Total Carton / Pallet (Auto)',
+    lbl_truck: 'Truck',
+    lbl_note: 'Note',
+    lbl_signer: 'Nama Pengesah / Signer',
+    btn_add_item: '+ Tambah Item',
+    btn_add_ref: '+ Tambah RW / MA / APAC',
+    btn_submit: 'Jana DO & Simpan Rekod',
+    btn_submit_loading: 'Sedang jana DO...',
+    btn_download_pdf: 'Muat Turun PDF',
+    btn_download_xlsx: 'Muat Turun Excel',
+    btn_generate_new: '+ Jana DO Baru',
+    result_title: 'DO berjaya dijana',
+    result_prefix: 'No. DO:',
+    ph_no_rw: 'cth: RW2606230802',
+    ph_no_ma: 'cth: MA2606230354 (optional)',
+    ph_truck: 'cth: - atau no. plat',
+    ph_note: 'Nota tambahan (jika ada)',
+    ph_signer: 'Nama authorized signer',
+    item_label: 'Item',
+    ref_label: 'Rujukan',
+    err_webapp_not_set: 'WEBAPP_URL belum diisi dalam kod. Sila deploy Apps Script dulu & update index.html.',
+    err_items_required: 'Sekurang-kurangnya 1 item diperlukan.',
+    err_item_fields: 'Sila lengkapkan semua field dalam senarai barang.',
+    err_refs_required: 'Sekurang-kurangnya 1 rujukan RW diperlukan.',
+    err_ref_rw_required: 'Sila lengkapkan No RW untuk setiap rujukan (#',
+    err_server_prefix: 'Gagal hubungi server:',
+    err_unknown: 'Ralat tidak diketahui.',
+    theme_dark: 'Dark',
+    theme_light: 'Light'
+  },
+  en: {
+    app_subtitle: 'Key in the details, the system auto-fills the DO template & saves the record to the database.',
+    sec_do_info: 'DO Information',
+    sec_from_to: 'From & To',
+    sec_items: 'Item List',
+    sec_additional: 'Additional Information',
+    lbl_no_rw: 'RW No.',
+    lbl_no_ma: 'MA No.',
+    lbl_do_no_auto: 'DO No. (Auto)',
+    lbl_apac: 'APAC Ticket',
+    lbl_date: 'Date',
+    lbl_from_title: 'From (Sender)',
+    lbl_fixed: '(Fixed)',
+    lbl_to_title: 'To (Recipient)',
+    lbl_company: 'Company Name',
+    lbl_address: 'Address',
+    lbl_attn: 'ATTN',
+    lbl_tel: 'Tel',
+    lbl_product_code: 'Product Code',
+    lbl_description: 'Description',
+    lbl_qty: 'Qty',
+    lbl_unit: 'Unit',
+    lbl_total_carton_auto: 'Total Carton / Pallet (Auto)',
+    lbl_truck: 'Truck',
+    lbl_note: 'Note',
+    lbl_signer: 'Signer Name',
+    btn_add_item: '+ Add Item',
+    btn_add_ref: '+ Add RW / MA / APAC',
+    btn_submit: 'Generate DO & Save Record',
+    btn_submit_loading: 'Generating DO...',
+    btn_download_pdf: 'Download PDF',
+    btn_download_xlsx: 'Download Excel',
+    btn_generate_new: '+ Generate New DO',
+    result_title: 'DO generated successfully',
+    result_prefix: 'Report:',
+    ph_no_rw: 'e.g. RW2606230802',
+    ph_no_ma: 'e.g. MA2606230354 (optional)',
+    ph_truck: 'e.g. - or plate no.',
+    ph_note: 'Additional notes (if any)',
+    ph_signer: "Authorized signer's name",
+    item_label: 'Item',
+    ref_label: 'Reference',
+    err_webapp_not_set: 'WEBAPP_URL is not set in the code yet. Deploy Apps Script first & update index.html.',
+    err_items_required: 'At least 1 item is required.',
+    err_item_fields: 'Please complete all fields in the item list.',
+    err_refs_required: 'At least 1 RW reference is required.',
+    err_ref_rw_required: 'Please fill in RW No. for reference #',
+    err_server_prefix: 'Failed to reach server:',
+    err_unknown: 'Unknown error.',
+    theme_dark: 'Dark',
+    theme_light: 'Light'
+  }
+};
+
+function t(key){
+  return (I18N[currentLang] && I18N[currentLang][key]) || key;
+}
+
+function applyLanguage(){
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    // kekalkan span.req (*) dan span.opt (optional) yang ada dalam sesetengah label
+    const reqSpan = el.querySelector('.req');
+    const optSpan = el.querySelector('.opt');
+    el.textContent = t(key);
+    if (reqSpan) el.appendChild(reqSpan);
+    if (optSpan) el.appendChild(optSpan);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.getAttribute('data-i18n-placeholder'));
+  });
+  document.getElementById('langLabel').textContent = currentLang === 'ms' ? 'EN' : 'BM';
+}
+
+document.getElementById('langToggle').addEventListener('click', () => {
+  currentLang = currentLang === 'ms' ? 'en' : 'ms';
+  applyLanguage();
+  renumberItems();
+  renumberRefs();
+  applyTheme();
+});
+
+// ---------------- THEME ----------------
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  const themeToggle = document.getElementById('themeToggle');
+  const label = document.getElementById('themeLabel');
+  if (currentTheme === 'light'){
+    themeToggle.firstChild.textContent = '🌙 ';
+    label.textContent = t('theme_dark');
+  } else {
+    themeToggle.firstChild.textContent = '☀️ ';
+    label.textContent = t('theme_light');
+  }
+}
+
+document.getElementById('themeToggle').addEventListener('click', () => {
+  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+  applyTheme();
+});
+
+// ---------------- REF ROWS (No RW / No MA / APAC Ticket) ----------------
+// RW WAJIB setiap row. MA & APAC Ticket OPTIONAL setiap row (termasuk row
+// pertama) — boleh tambah lebih dari satu rujukan dalam SATU DO tanpa kena
+// paksa isi MA/APAC sekali.
+function addRefRow(){
+  refCount++;
+  const idx = refCount;
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <span class="item-tag">${t('ref_label')} ${idx}</span>
+    <div class="ref-grid">
+      <div><label data-i18n="lbl_no_rw">${t('lbl_no_rw')} <span class="req">*</span></label><input type="text" class="f-rw" placeholder="${t('ph_no_rw')}" required></div>
+      <div><label data-i18n="lbl_no_ma">${t('lbl_no_ma')} <span class="opt">(optional)</span></label><input type="text" class="f-ma" placeholder="${t('ph_no_ma')}"></div>
+      <div><label data-i18n="lbl_apac">${t('lbl_apac')} <span class="opt">(optional)</span></label><input type="text" class="f-apac" placeholder="260515024031597"></div>
+      <button type="button" class="btn-remove" title="Remove">&times;</button>
+    </div>
+  `;
+  document.getElementById('refsContainer').appendChild(div);
+
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    renumberRefs();
+    updateDoNoPreview();
+  });
+  div.querySelector('.f-rw').addEventListener('input', updateDoNoPreview);
+  div.querySelector('.f-ma').addEventListener('input', updateDoNoPreview);
+}
+
+function renumberRefs(){
+  const rows = document.querySelectorAll('#refsContainer .item-row');
+  rows.forEach((row, i) => {
+    row.querySelector('.item-tag').textContent = t('ref_label') + ' ' + (i + 1);
+  });
+  document.querySelectorAll('#refsContainer .btn-remove').forEach(btn => {
+    btn.disabled = rows.length <= 1;
+  });
+}
+
+document.getElementById('addRefBtn').addEventListener('click', () => {
+  addRefRow();
+  renumberRefs();
+  updateDoNoPreview();
+});
+
+function collectRefs(){
+  const rows = document.querySelectorAll('#refsContainer .item-row');
+  const refs = [];
+  for (const row of rows){
+    refs.push({
+      rw: row.querySelector('.f-rw').value.trim(),
+      ma: row.querySelector('.f-ma').value.trim(),
+      apacTicket: row.querySelector('.f-apac').value.trim()
+    });
+  }
+  return refs;
+}
+
+// ---------------- ITEM ROWS ----------------
+function addItemRow(){
+  itemCount++;
+  const idx = itemCount;
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <span class="item-tag">${t('item_label')} ${idx}</span>
+    <div class="item-grid">
+      <div><label data-i18n="lbl_product_code">${t('lbl_product_code')}</label><input type="text" class="f-code" required></div>
+      <div><label data-i18n="lbl_description">${t('lbl_description')}</label><input type="text" class="f-desc" required></div>
+      <div><label data-i18n="lbl_qty">${t('lbl_qty')}</label><input type="number" class="f-qty" min="1" step="1" required></div>
+      <div><label data-i18n="lbl_unit">${t('lbl_unit')}</label>
+        <select class="f-unit" required>
+          <option value="">-</option>
+          ${UNIT_OPTIONS.map(u=>`<option value="${u}">${u}</option>`).join('')}
+        </select>
+      </div>
+      <button type="button" class="btn-remove" title="Remove">&times;</button>
+    </div>
+  `;
+  document.getElementById('itemsContainer').appendChild(div);
+
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    renumberItems();
+    updateTotalCartonPreview();
+  });
+  div.querySelector('.f-qty').addEventListener('input', updateTotalCartonPreview);
+  div.querySelector('.f-unit').addEventListener('change', updateTotalCartonPreview);
+}
+
+function renumberItems(){
+  const rows = document.querySelectorAll('#itemsContainer .item-row');
+  rows.forEach((row, i) => {
+    row.querySelector('.item-tag').textContent = t('item_label') + ' ' + (i + 1);
+  });
+  document.querySelectorAll('#itemsContainer .btn-remove').forEach(btn => {
+    btn.disabled = rows.length <= 1;
+  });
+}
+
+document.getElementById('addItemBtn').addEventListener('click', () => {
+  addItemRow();
+  renumberItems();
+  updateTotalCartonPreview();
+});
+
+// ---------------- AUTO DO NO ----------------
+// DO No dibina dari rujukan PERTAMA sahaja (RW wajib, MA optional). Rujukan
+// ke-2 dst cuma jadi rujukan tambahan (papar kat jadual PDF & Database),
+// TAK masuk dalam DO No supaya convention Sungrow sedia ada tak berubah.
+function normalizePart(val, prefix){
+  let s = String(val || '').trim().toUpperCase();
+  if (s && s.indexOf(prefix) !== 0) s = prefix + s;
+  return s;
+}
+
+function updateDoNoPreview(){
+  const preview = document.getElementById('doNoPreview');
+  const firstRow = document.querySelector('#refsContainer .item-row');
+  if (!firstRow){
+    preview.textContent = '—';
+    return;
+  }
+  const rw = firstRow.querySelector('.f-rw').value.trim();
+  const ma = firstRow.querySelector('.f-ma').value.trim();
+  if (!rw){
+    preview.textContent = '—';
+    return;
+  }
+  let doNo = normalizePart(rw,'RW');
+  if (ma) doNo += '_' + normalizePart(ma,'MA');
+  doNo += '_JD';
+  preview.textContent = doNo;
+}
+
+// ---------------- AUTO TOTAL CARTON/PALLET ----------------
+function updateTotalCartonPreview(){
+  const rows = document.querySelectorAll('#itemsContainer .item-row');
+  const groups = {};
+  const order = [];
+  rows.forEach(row => {
+    const unit = row.querySelector('.f-unit').value.trim().toUpperCase();
+    const qty = Number(row.querySelector('.f-qty').value) || 0;
+    if (!unit || qty <= 0) return;
+    if (!(unit in groups)){ groups[unit] = 0; order.push(unit); }
+    groups[unit] += qty;
+  });
+  const preview = document.getElementById('totalCartonPreview');
+  if (order.length === 0){
+    preview.textContent = '—';
+    return;
+  }
+  preview.textContent = order.map(u => groups[u] + ' ' + u).join(', ');
+}
+
+// ---------------- INIT ----------------
+addRefRow();
+renumberRefs();
+addItemRow();
+renumberItems();
+updateTotalCartonPreview();
+updateDoNoPreview();
+document.getElementById('date').valueAsDate = new Date();
+applyLanguage();
+applyTheme();
+
+// ---------------- FORM SUBMIT ----------------
+function showMsg(text, type){
+  const box = document.getElementById('msgBox');
+  box.textContent = text;
+  box.className = 'msg ' + type;
+}
+function clearMsg(){
+  const box = document.getElementById('msgBox');
+  box.className = 'msg';
+  box.textContent = '';
+}
+
+function collectItems(){
+  const rows = document.querySelectorAll('#itemsContainer .item-row');
+  const items = [];
+  for (const row of rows){
+    items.push({
+      productCode: row.querySelector('.f-code').value.trim(),
+      description: row.querySelector('.f-desc').value.trim(),
+      qty: row.querySelector('.f-qty').value,
+      unit: row.querySelector('.f-unit').value
+    });
+  }
+  return items;
+}
+
+document.getElementById('doForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearMsg();
+
+  if (WEBAPP_URL.indexOf('PASTE_') === 0){
+    showMsg(t('err_webapp_not_set'), 'err');
+    return;
+  }
+
+  const refs = collectRefs();
+  if (refs.length === 0){
+    showMsg(t('err_refs_required'), 'err');
+    return;
+  }
+  for (let i = 0; i < refs.length; i++){
+    if (!refs[i].rw){
+      showMsg(t('err_ref_rw_required') + (i + 1) + ')', 'err');
+      return;
+    }
+  }
+
+  const items = collectItems();
+  if (items.length === 0){
+    showMsg(t('err_items_required'), 'err');
+    return;
+  }
+  for (const it of items){
+    if (!it.productCode || !it.description || !it.qty || !it.unit){
+      showMsg(t('err_item_fields'), 'err');
+      return;
+    }
+  }
+
+  const payload = {
+    refs: refs,
+    date: document.getElementById('date').value,
+    fromName: FIXED_FROM.name,
+    fromAddress: FIXED_FROM.address,
+    fromAttn: FIXED_FROM.attn,
+    fromTel: FIXED_FROM.tel,
+    toName: document.getElementById('toName').value.trim(),
+    toAddress: document.getElementById('toAddress').value.trim(),
+    toAttn: document.getElementById('toAttn').value.trim(),
+    toTel: document.getElementById('toTel').value.trim(),
+    items: items,
+    truck: document.getElementById('truck').value.trim(),
+    note: document.getElementById('note').value.trim(),
+    signer: document.getElementById('signer').value.trim()
+  };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.innerHTML = '<span class="spinner"></span> ' + t('btn_submit_loading');
+
+  try {
+    const res = await fetch(WEBAPP_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+
+    if (result.success){
+      document.getElementById('doForm').style.display = 'none';
+      // Paparkan nama report penuh yang merangkumi No Bilangan + DO No
+      document.getElementById('resultDoNo').textContent = t('result_prefix') + ' ' + (result.reportName || result.doNo);
+      document.getElementById('pdfLink').href = result.pdfUrl;
+      document.getElementById('xlsxLink').href = result.xlsxUrl;
+      document.getElementById('resultBox').classList.add('show');
+    } else {
+      showMsg(result.error || t('err_unknown'), 'err');
+    }
+  } catch (err) {
+    showMsg(t('err_server_prefix') + ' ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+});
+
+document.getElementById('againBtn').addEventListener('click', () => {
+  document.getElementById('doForm').reset();
+  document.getElementById('itemsContainer').innerHTML = '';
+  document.getElementById('refsContainer').innerHTML = '';
+  itemCount = 0;
+  refCount = 0;
+  addRefRow();
+  renumberRefs();
+  addItemRow();
+  renumberItems();
+  updateTotalCartonPreview();
+  updateDoNoPreview();
+  document.getElementById('date').valueAsDate = new Date();
+  document.getElementById('resultBox').classList.remove('show');
+  document.getElementById('doForm').style.display = 'block';
+  clearMsg();
+});
+</script>
+</body>
+</html>
