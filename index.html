@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations Overview</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Chart.js & PapaParse -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .powerbi-card {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .powerbi-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+        }
+        /* Custom Scrollbar for Dropdown details */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        /* Details summary hide default arrow */
+        details > summary { list-style: none; }
+        details > summary::-webkit-details-marker { display: none; }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-screen-2xl mx-auto px-4 h-14 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i class="fa-solid fa-chart-line text-sky-400 text-xl"></i>
+                <h1 class="text-lg font-semibold tracking-wide">Operations Overview</h1>
+            </div>
+            <div class="flex items-center gap-4 text-sm">
+                <span id="syncStatus" class="text-sky-300 hidden text-xs font-medium animate-pulse"><i class="fa-solid fa-rotate fa-spin mr-1"></i> Syncing...</span>
+                <span id="lastUpdated" class="text-slate-400 hidden sm:block">Last updated: -</span>
+                <button onclick="fetchData(false)" class="bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-md transition border border-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-screen-2xl mx-auto p-4 sm:p-6 flex-grow w-full">
+        
+        <!-- Tab Navigation -->
+        <div class="border-b border-slate-200 mb-6">
+            <nav class="-mb-px flex space-x-6 sm:space-x-8 overflow-x-auto" aria-label="Tabs">
+                <button onclick="switchTab('dashboard')" id="tab-dashboard" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-sky-500 text-sky-600 transition-colors">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard
+                </button>
+                <button onclick="switchTab('transactions')" id="tab-transactions" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
+                    <i class="fa-solid fa-table-list mr-2"></i>Detailed Transactions
+                </button>
+                <!-- Direct link to AppScript Web App Form -->
+                <a href="" target="_blank" id="tab-form" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors">
+                    <i class="fa-solid fa-file-signature mr-2"></i>Submit Form <i class="fa-solid fa-external-link-alt text-[10px] ml-1"></i>
+                </a>
+            </nav>
+        </div>
+
+        <!-- DASHBOARD VIEW -->
+        <div id="view-dashboard" class="block">
+            <!-- KPI Cards Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="bg-white rounded-lg border-l-4 border-sky-500 p-4 powerbi-card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">Total Delivery Orders</p>
+                        <h2 id="kpi-do" class="text-2xl font-bold text-slate-800">0</h2>
+                    </div>
+                    <div class="bg-sky-50 text-sky-500 p-3 rounded-full"><i class="fa-solid fa-file-invoice fa-lg"></i></div>
+                </div>
+                <div class="bg-white rounded-lg border-l-4 border-emerald-500 p-4 powerbi-card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">Total Cartons/Pallets</p>
+                        <h2 id="kpi-carton" class="text-2xl font-bold text-slate-800">0</h2>
+                    </div>
+                    <div class="bg-emerald-50 text-emerald-500 p-3 rounded-full"><i class="fa-solid fa-boxes-stacked fa-lg"></i></div>
+                </div>
+                <div class="bg-white rounded-lg border-l-4 border-indigo-500 p-4 powerbi-card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">Unique Trucks</p>
+                        <h2 id="kpi-truck" class="text-2xl font-bold text-slate-800">0</h2>
+                    </div>
+                    <div class="bg-indigo-50 text-indigo-500 p-3 rounded-full"><i class="fa-solid fa-truck-moving fa-lg"></i></div>
+                </div>
+                <div class="bg-white rounded-lg border-l-4 border-amber-500 p-4 powerbi-card flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-slate-500 mb-1">Total Items</p>
+                        <h2 id="kpi-item" class="text-2xl font-bold text-slate-800">0</h2>
+                    </div>
+                    <div class="bg-amber-50 text-amber-500 p-3 rounded-full"><i class="fa-solid fa-cubes fa-lg"></i></div>
+                </div>
+            </div>
+
+            <!-- Charts Row (4 Charts Grid) -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- Trend Chart -->
+                <div class="bg-white rounded-lg border border-slate-200 p-4 powerbi-card">
+                    <h3 class="text-sm font-semibold text-slate-600 mb-4 uppercase tracking-wider">Deliveries Volume By Date</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Truck Chart -->
+                <div class="bg-white rounded-lg border border-slate-200 p-4 powerbi-card">
+                    <h3 class="text-sm font-semibold text-slate-600 mb-4 uppercase tracking-wider">Delivery Distribution By Truck</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="truckChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Destination Chart -->
+                <div class="bg-white rounded-lg border border-slate-200 p-4 powerbi-card">
+                    <h3 class="text-sm font-semibold text-slate-600 mb-4 uppercase tracking-wider">Top Destinations (To Name)</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="destinationChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Senders Bar Chart -->
+                <div class="bg-white rounded-lg border border-slate-200 p-4 powerbi-card">
+                    <h3 class="text-sm font-semibold text-slate-600 mb-4 uppercase tracking-wider">Top Senders (From Name)</h3>
+                    <div class="relative h-64 w-full">
+                        <canvas id="senderChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End of Dashboard View -->
+
+        <!-- TRANSACTIONS VIEW -->
+        <div id="view-transactions" class="hidden">
+            <div class="bg-white rounded-lg border border-slate-200 powerbi-card overflow-hidden">
+                <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Detailed Transactions</h3>
+                    <div class="relative w-full sm:w-72">
+                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search DO, Truck, Ref..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
+                    </div>
+                </div>
+                <div class="overflow-x-auto min-h-[400px]">
+                    <table class="w-full text-sm text-left whitespace-nowrap">
+                        <thead class="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4 font-semibold">Date</th>
+                                <th class="py-3 px-4 font-semibold">DO No</th>
+                                <th class="py-3 px-4 font-semibold">Ref (RW/MA)</th>
+                                <th class="py-3 px-4 font-semibold">Truck</th>
+                                <th class="py-3 px-4 font-semibold min-w-[200px]">Sender (From)</th>
+                                <th class="py-3 px-4 font-semibold min-w-[200px]">Destination (To)</th>
+                                <th class="py-3 px-4 font-semibold text-right">Items</th>
+                                <th class="py-3 px-4 font-semibold text-right">Cartons</th>
+                                <th class="py-3 px-4 font-semibold text-center">Docs</th>
+                                <th class="py-3 px-4 font-semibold text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-100">
+                            <!-- Table rows generated by JS -->
+                            <tr><td colspan="10" class="text-center py-8 text-slate-400">Loading data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination Footer -->
+                <div class="p-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50">
+                    <div class="text-sm text-slate-500" id="tableRecordCount">
+                        Showing 0 to 0 of 0 records
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="prevPageBtn" onclick="changePage(-1)" class="px-3 py-1.5 text-sm border border-slate-300 rounded-md bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">
+                            <i class="fa-solid fa-chevron-left mr-1"></i> Prev
+                        </button>
+                        <span id="pageIndicator" class="text-sm font-medium text-slate-700 px-2">Page 1</span>
+                        <button id="nextPageBtn" onclick="changePage(1)" class="px-3 py-1.5 text-sm border border-slate-300 rounded-md bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm">
+                            Next <i class="fa-solid fa-chevron-right ml-1"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- End of Transactions View -->
+    </main>
+
+    <!-- Custom Modals diletakkan di hujung body -->
+    <div id="editModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[100] hidden items-center justify-center px-4 backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+            <div class="bg-sky-50 px-6 py-4 border-b border-sky-100 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-sky-800">Urus Transaksi</h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
+            </div>
+            <div class="p-6">
+                <p class="text-slate-600 mb-4">Anda ingin menguruskan rekod: <strong id="modal-do-no" class="text-slate-800"></strong>.</p>
+                <div class="bg-slate-50 p-4 rounded-md border border-slate-200">
+                    <p class="text-sm text-slate-500 flex gap-3">
+                        <i class="fa-solid fa-up-right-from-square text-sky-500 mt-0.5"></i>
+                        <span>Anda akan dibawa ke tab borang di sistem AppScript untuk membuat pengubahsuaian penuh.</span>
+                    </p>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeModals()" class="px-4 py-2 bg-white border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 font-medium text-sm transition">Batal</button>
+                <button onclick="confirmEdit()" class="px-4 py-2 bg-sky-600 text-white rounded-md hover:bg-sky-700 font-medium text-sm transition shadow-sm">Buka Borang Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="fixed inset-0 bg-slate-900 bg-opacity-50 z-[100] hidden items-center justify-center px-4 backdrop-blur-sm">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden transform transition-all">
+            <div class="bg-red-50 px-6 py-4 border-b border-red-100 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-red-800">Padam Rekod</h3>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600 transition"><i class="fa-solid fa-xmark fa-lg"></i></button>
+            </div>
+            <div class="p-6">
+                <div class="flex items-start gap-4 mb-2">
+                    <div class="bg-red-100 text-red-600 p-3 rounded-full shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation fa-xl"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-slate-800 font-medium text-lg">Adakah anda pasti?</h4>
+                        <p class="text-slate-600 mt-1 text-sm">Anda akan memadam rekod <strong id="delete-modal-do-no" class="text-slate-800"></strong>. Rekod ini akan dibuang daripada Database pelayan.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-6 py-3 border-t border-slate-200 flex justify-end gap-2">
+                <button onclick="closeModals()" class="px-4 py-2 bg-white border border-slate-300 rounded-md text-slate-700 hover:bg-slate-50 font-medium text-sm transition">Batal</button>
+                <button id="btn-confirm-delete" onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-medium text-sm transition shadow-sm">Ya, Padam</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Sources
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSxVtx961z5jGFknOOYdlCAnYVUOnkMYLB2-EkIJ6hdP-twNRXubxnCmAVSmsnVj9Ook1C5nHtnrUqX/pub?gid=46934098&single=true&output=csv';
+        const STORAGE_KEY = 'do_dashboard_data';
+        
+        // APPSCRIPT URL untuk Fungsi DELETE & EDIT
+        const APPSCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5va45WUXO4MPx_mD8r_X-hldd-s8DATyozSj9YHSydm51qJOZGVVzg_KsRNFUWg/exec';
+        
+        // Variables
+        let allData = [];
+        let filteredData = [];
+        let myCharts = {};
+        
+        // Pagination state
+        let currentPage = 1;
+        const rowsPerPage = 10;
+
+        // Start Application
+        initApp();
+
+        function initApp() {
+            // Check Local Storage Cache for Instant Loading (Offline First)
+            const cachedData = localStorage.getItem(STORAGE_KEY);
+            if (cachedData) {
+                try {
+                    allData = JSON.parse(cachedData);
+                    filteredData = [...allData];
+                    processData();
+                    document.getElementById('lastUpdated').innerText = 'Last updated: Loaded from Cache';
+                    
+                    // Trigger Background Sync
+                    document.getElementById('syncStatus').classList.remove('hidden');
+                    fetchData(true); 
+                } catch(e) {
+                    fetchData(false);
+                }
+            } else {
+                fetchData(false);
+            }
+        }
+
+        function fetchData(isBackground = false) {
+            if (!isBackground) {
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="text-center py-8 text-slate-500"><i class="fa-solid fa-circle-notch fa-spin text-sky-500 mr-2 text-xl"></i> Loading data from Google Sheets...</td></tr>';
+            }
+
+            Papa.parse(CSV_URL, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                worker: true, // Prevent UI blocking
+                complete: function(results) {
+                    if (results.data && results.data.length > 0) {
+                        // Sort Descending (Newest First)
+                        allData = results.data.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
+                        
+                        // Apply current filter if exists
+                        const query = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+                        if(query) {
+                           applyFilterData(query);
+                        } else {
+                           filteredData = [...allData];
+                        }
+                        
+                        // Save to cache
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
+                        
+                        processData();
+                        
+                        const now = new Date();
+                        document.getElementById('lastUpdated').innerText = `Last updated: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                        document.getElementById('lastUpdated').classList.remove('hidden');
+                        document.getElementById('syncStatus').classList.add('hidden');
+                    }
+                },
+                error: function(err) {
+                    console.error("Error fetching data:", err);
+                    if (!isBackground) {
+                        document.getElementById('tableBody').innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-500">Failed to load data. Please check your internet or spreadsheet link.</td></tr>';
+                    }
+                    document.getElementById('syncStatus').classList.add('hidden');
+                }
+            });
+        }
+
+        function processData() {
+            updateKPIs();
+            renderTable();
+            updateCharts();
+        }
+
+        function updateKPIs() {
+            document.getElementById('kpi-do').innerText = filteredData.length;
+            
+            let totalCartons = 0;
+            let totalItems = 0;
+            let uniqueTrucks = new Set();
+            
+            filteredData.forEach(row => {
+                let cartonVal = parseInt(row['Total Carton/Pallet']) || 0;
+                totalCartons += cartonVal;
+                
+                let itemVal = parseInt(row['Total Items']) || 0;
+                totalItems += itemVal;
+                
+                if (row['Truck'] && row['Truck'].trim() !== '') {
+                    uniqueTrucks.add(row['Truck'].trim());
+                }
+            });
+
+            document.getElementById('kpi-carton').innerText = totalCartons.toLocaleString();
+            document.getElementById('kpi-item').innerText = totalItems.toLocaleString();
+            document.getElementById('kpi-truck').innerText = uniqueTrucks.size;
+        }
+
+        function updateCharts() {
+            const dateCounts = {};
+            const senderCounts = {};
+            const truckCounts = {};
+            const destinationCounts = {};
+
+            filteredData.forEach(row => {
+                const d = row['Date'] || 'Unknown';
+                dateCounts[d] = (dateCounts[d] || 0) + 1;
+                
+                const sender = row['From Name'] || 'Unknown';
+                senderCounts[sender] = (senderCounts[sender] || 0) + 1;
+
+                const truck = row['Truck'] ? row['Truck'].trim() : 'Unspecified';
+                const finalTruck = truck === '' ? 'Unspecified' : truck;
+                truckCounts[finalTruck] = (truckCounts[finalTruck] || 0) + 1;
+
+                const dest = row['To Name'] || 'Unknown';
+                destinationCounts[dest] = (destinationCounts[dest] || 0) + 1;
+            });
+
+            const sortedDates = Object.keys(dateCounts).sort((a, b) => new Date(a) - new Date(b));
+            const trendData = sortedDates.map(d => dateCounts[d]);
+
+            const sortedSenders = Object.entries(senderCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            const sortedDestinations = Object.entries(destinationCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            
+            const truckLabels = Object.keys(truckCounts);
+            const truckData = truckLabels.map(t => truckCounts[t]);
+            
+            // 1. Line Chart
+            createOrUpdateChart('trendChart', 'line', sortedDates, [
+                {
+                    label: 'Deliveries',
+                    data: trendData,
+                    borderColor: '#0ea5e9',
+                    backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }
+            ]);
+
+            // 2. Doughnut Chart
+            createOrUpdateChart('truckChart', 'doughnut', truckLabels, [
+                {
+                    label: 'Deliveries',
+                    data: truckData,
+                    backgroundColor: ['#0ea5e9', '#3b82f6', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#64748b'],
+                    borderWidth: 0
+                }
+            ], { 
+                plugins: { legend: { display: true, position: 'right' } },
+                cutout: '65%'
+            });
+
+            // 3. Bar Chart (Destinations)
+            createOrUpdateChart('destinationChart', 'bar', sortedDestinations.map(s => truncate(s[0], 25)), [
+                {
+                    label: 'Total DO',
+                    data: sortedDestinations.map(s => s[1]),
+                    backgroundColor: '#f97316',
+                    borderRadius: 4
+                }
+            ], { indexAxis: 'y' });
+
+            // 4. Bar Chart (Senders)
+            createOrUpdateChart('senderChart', 'bar', sortedSenders.map(s => truncate(s[0], 25)), [
+                {
+                    label: 'Total DO',
+                    data: sortedSenders.map(s => s[1]),
+                    backgroundColor: '#9333ea',
+                    borderRadius: 4
+                }
+            ], { indexAxis: 'y' });
+        }
+
+        function createOrUpdateChart(canvasId, type, labels, datasets, extraOptions = {}) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (myCharts[canvasId]) { myCharts[canvasId].destroy(); }
+            myCharts[canvasId] = new Chart(ctx, {
+                type: type,
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: type !== 'doughnut' ? {
+                        y: { beginAtZero: true, grid: { borderDash: [2, 4], color: '#f1f5f9' } },
+                        x: { grid: { display: false } }
+                    } : {},
+                    ...extraOptions
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            if (filteredData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="text-center py-8 text-slate-500">No matching records found.</td></tr>';
+                document.getElementById('tableRecordCount').innerText = `Showing 0 to 0 of 0 records`;
+                return;
+            }
+
+            const totalRecords = filteredData.length;
+            const totalPages = Math.ceil(totalRecords / rowsPerPage);
+            
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = Math.min(startIndex + rowsPerPage, totalRecords);
+            
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+
+            paginatedData.forEach(row => {
+                let docsHtml = '';
+                if (row['PDF Link']) docsHtml += `<a href="${row['PDF Link']}" target="_blank" title="View PDF" class="text-red-500 hover:text-red-700 transition mx-1"><i class="fa-solid fa-file-pdf"></i></a>`;
+                if (row['Excel Link']) docsHtml += `<a href="${row['Excel Link']}" target="_blank" title="View Excel" class="text-emerald-500 hover:text-emerald-700 transition mx-1"><i class="fa-solid fa-file-excel"></i></a>`;
+                
+                const refsHtml = parseJSONRefs(row['RW/MA/APAC List (JSON)']);
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition-colors group';
+                tr.innerHTML = `
+                    <td class="py-3 px-4 border-b border-slate-100 align-top">${row['Date'] || '-'}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 font-medium text-slate-700 align-top">${row['DO No'] || '-'}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 align-top whitespace-normal">
+                        ${refsHtml}
+                    </td>
+                    <td class="py-3 px-4 border-b border-slate-100 align-top">${row['Truck'] || '-'}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 align-top" title="${row['From Name']}">${truncate(row['From Name'], 25)}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 align-top" title="${row['To Name']}">${truncate(row['To Name'], 25)}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 text-right font-medium align-top">${row['Total Items'] || '0'}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 text-right font-medium align-top">${row['Total Carton/Pallet'] || '0'}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 text-center text-lg align-top">${docsHtml}</td>
+                    <td class="py-3 px-4 border-b border-slate-100 text-center align-top">
+                        <div class="flex items-center justify-center gap-2">
+                            <button onclick="actionEdit('${row['DO No']}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded-md transition" title="Edit DO">
+                                <i class="fa-solid fa-pen text-sm"></i>
+                            </button>
+                            <button onclick="actionDelete('${row['DO No']}')" class="text-red-500 hover:bg-red-50 p-1.5 rounded-md transition" title="Delete DO">
+                                <i class="fa-solid fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('tableRecordCount').innerText = `Showing ${startIndex + 1} to ${endIndex} of ${totalRecords} records`;
+            document.getElementById('pageIndicator').innerText = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('prevPageBtn').disabled = (currentPage === 1);
+            document.getElementById('nextPageBtn').disabled = (currentPage === totalPages);
+        }
+
+        function parseJSONRefs(jsonStr) {
+            if (!jsonStr) return '-';
+            try {
+                const arr = JSON.parse(jsonStr);
+                if (!Array.isArray(arr) || arr.length === 0) return '-';
+                
+                let html = `<details class="w-36 group/details relative">
+                                <summary class="cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium py-1 px-2 rounded border border-slate-200 inline-flex items-center justify-between w-full transition">
+                                    <span>View Refs (${arr.length})</span>
+                                    <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 group-open/details:rotate-180 transition-transform"></i>
+                                </summary>
+                                <div class="mt-2 space-y-1 bg-white p-2 rounded border border-slate-200 shadow-lg absolute z-10 w-48 max-h-48 overflow-y-auto text-left">`;
+                
+                arr.forEach(item => {
+                    if (item.rw) html += `<div class="bg-sky-100 text-sky-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-sky-200">RW: ${item.rw}</div>`;
+                    if (item.ma) html += `<div class="bg-indigo-100 text-indigo-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-indigo-200">MA: ${item.ma}</div>`;
+                    if (item.apacTicket) html += `<div class="bg-emerald-100 text-emerald-800 text-[10px] font-semibold px-2 py-0.5 rounded border border-emerald-200">APAC: ${item.apacTicket}</div>`;
+                });
+                
+                html += `</div></details>`;
+                return html;
+            } catch (e) {
+                return `<span class="text-xs text-slate-400">Invalid Data</span>`;
+            }
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            renderTable();
+        }
+
+        function filterTable() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            currentPage = 1; 
+            applyFilterData(query);
+            processData();
+        }
+        
+        function applyFilterData(query) {
+             filteredData = allData.filter(row => {
+                const searchString = [
+                    row['DO No'], 
+                    row['Truck'], 
+                    row['From Name'], 
+                    row['To Name'],
+                    row['RW/MA/APAC List (JSON)']
+                ].join(' ').toLowerCase();
+                return searchString.includes(query);
+            });
+        }
+
+        function switchTab(tabName) {
+            const tabs = ['dashboard', 'transactions'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const view = document.getElementById(`view-${t}`);
+                
+                if (t === tabName) {
+                    btn.className = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-sky-500 text-sky-600 transition-colors";
+                    view.classList.remove('hidden');
+                    view.classList.add('block');
+                } else {
+                    btn.className = "whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors";
+                    view.classList.remove('block');
+                    view.classList.add('hidden');
+                }
+            });
+        }
+
+        function actionEdit(doNo) {
+            document.getElementById('modal-do-no').innerText = doNo;
+            window.currentActionDoNo = doNo;
+            document.getElementById('editModal').classList.remove('hidden');
+            document.getElementById('editModal').classList.add('flex');
+        }
+
+        function actionDelete(doNo) {
+            document.getElementById('delete-modal-do-no').innerText = doNo;
+            window.currentActionDoNo = doNo;
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
+        }
+
+        function closeModals() {
+            document.getElementById('editModal').classList.remove('flex');
+            document.getElementById('editModal').classList.add('hidden');
+            document.getElementById('deleteModal').classList.remove('flex');
+            document.getElementById('deleteModal').classList.add('hidden');
+        }
+
+        function confirmEdit() {
+            if(!window.currentActionDoNo) return;
+            // Buka tab AppScript dengan parameter GET edit
+            const targetUrl = APPSCRIPT_URL + '?action=edit&doNo=' + encodeURIComponent(window.currentActionDoNo);
+            window.open(targetUrl, '_blank');
+            closeModals();
+        }
+
+        function confirmDelete() {
+            if(!window.currentActionDoNo) return;
+            
+            const btn = document.getElementById('btn-confirm-delete');
+            const originalText = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Memadam...';
+            btn.disabled = true;
+            
+            // Hantar signal POST ke Google AppScript Server
+            fetch(APPSCRIPT_URL, {
+                method: 'POST',
+                // Mode no-cors diguna pakai supaya tidak kena blok di client, AppScript uruskan di blkg
+                body: JSON.stringify({
+                    action: 'delete',
+                    doNo: window.currentActionDoNo
+                })
+            })
+            .then(res => {
+                // Berjaya hantar
+                closeModals();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                // Refresh data serta-merta 
+                document.getElementById('syncStatus').classList.remove('hidden');
+                fetchData(true); 
+            })
+            .catch(err => {
+                console.error("Error connecting to server:", err);
+                closeModals();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                // Teruskan kemaskini (in case berjaya tapi CORS error)
+                document.getElementById('syncStatus').classList.remove('hidden');
+                fetchData(true);
+            });
+        }
+
+        function truncate(str, length = 20) {
+            if (!str) return '';
+            return str.length > length ? str.substring(0, length) + '...' : str;
+        }
+
+    </script>
+</body>
+</html>
