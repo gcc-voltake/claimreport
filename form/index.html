@@ -189,6 +189,7 @@
     font-weight:700;
     color:var(--accent-2);
     word-break:break-all;
+    white-space: pre-wrap; /* For line breaks in DO NO */
   }
 
   .from-fixed-box{
@@ -204,7 +205,6 @@
     color:var(--text-dim);
   }
 
-  /* item table */
   .item-row{
     border:1px solid var(--line);
     border-radius:8px;
@@ -223,6 +223,8 @@
     padding:2px 8px;
     border-radius:20px;
   }
+
+  /* Item Grid */
   .item-grid{
     display:grid;
     grid-template-columns:1.2fr 2fr .8fr .9fr auto;
@@ -232,15 +234,28 @@
   @media(max-width:700px){.item-grid{grid-template-columns:1fr 1fr;}}
   .item-grid label{font-size:10.5px;margin-bottom:3px;}
 
-  /* ref (RW/MA/APAC) table -- pattern sama macam item-row, grid berlainan */
+  /* Ref Grid (RW/RC + MA) */
   .ref-grid{
     display:grid;
-    grid-template-columns:1.1fr 1fr 1.3fr auto;
+    grid-template-columns:1.5fr 1.5fr auto;
     gap:8px;
     align-items:end;
   }
-  @media(max-width:700px){.ref-grid{grid-template-columns:1fr 1fr;}}
+  .ref-type-input{
+    display:flex;
+    gap:8px;
+  }
+  @media(max-width:700px){.ref-grid{grid-template-columns:1fr;}}
   .ref-grid label{font-size:10.5px;margin-bottom:3px;}
+
+  /* APAC Grid (Standalone) */
+  .apac-grid{
+    display:grid;
+    grid-template-columns:1fr auto;
+    gap:8px;
+    align-items:end;
+  }
+  .apac-grid label{font-size:10.5px;margin-bottom:3px;}
 
   .btn-remove{
     background:var(--card);
@@ -389,10 +404,17 @@
     <div class="card">
       <h2 data-i18n="sec_do_info">Maklumat DO</h2>
 
+      <!-- RW/RC & MA Section -->
+      <h3 style="font-size:13px; margin:0 0 10px; color:var(--text-dim);" data-i18n="sec_refs_rwrc">Rujukan Utama (RW/RC & MA)</h3>
       <div id="refsContainer"></div>
-      <button type="button" class="btn-add" id="addRefBtn" data-i18n="btn_add_ref">+ Tambah RW / MA / APAC</button>
+      <button type="button" class="btn-add" id="addRefBtn" data-i18n="btn_add_ref" style="margin-bottom: 24px;">+ Tambah RW / RC & MA</button>
 
-      <div class="preview-box" style="margin-top:14px;">
+      <!-- Standalone APAC Ticket Section -->
+      <h3 style="font-size:13px; margin:0 0 10px; color:var(--text-dim);" data-i18n="sec_refs_apac">Senarai APAC Ticket</h3>
+      <div id="apacContainer"></div>
+      <button type="button" class="btn-add" id="addApacBtn" data-i18n="btn_add_apac">+ Tambah APAC Ticket</button>
+
+      <div class="preview-box" style="margin-top:24px;">
         <label data-i18n="lbl_do_no_auto">No. DO (Auto)</label>
         <div class="preview-value" id="doNoPreview">—</div>
       </div>
@@ -410,7 +432,7 @@
             <span data-i18n="lbl_from_title">From (Penghantar)</span>
             <span class="fixed-tag" data-i18n="lbl_fixed">(Tetap)</span>
           </h3>
-          <!-- From dikunci — JingDong Logistics sentiasa jadi penghantar tetap, tak boleh diubah dalam form -->
+          <!-- From dikunci -->
           <div class="preview-box from-fixed-box">
             <div class="from-name">JingDong Logistics</div>
             <div class="from-line">2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor</div>
@@ -484,12 +506,10 @@ const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzZUSKRlE2scBUuZerzT
 const UNIT_OPTIONS = ['PCS','UNIT','SET','BOX','PALLET','KG'];
 let itemCount = 0;
 let refCount = 0;
+let apacCount = 0;
 let currentLang = 'ms';
 let currentTheme = 'light';
 
-// ---------------- FIXED SENDER (From) ----------------
-// From sentiasa JingDong Logistics — tak boleh diubah dalam form.
-// Kalau nak tukar sender tetap ni suatu hari nanti, edit terus kat sini.
 const FIXED_FROM = {
   name: 'JingDong Logistics',
   address: '2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor',
@@ -497,15 +517,16 @@ const FIXED_FROM = {
   tel: '6012-396 1012'
 };
 
-// ---------------- TRANSLATIONS ----------------
 const I18N = {
   ms: {
     app_subtitle: 'Key in maklumat, sistem auto isi template DO & simpan rekod ke database.',
     sec_do_info: 'Maklumat DO',
+    sec_refs_rwrc: 'Rujukan Utama (RW/RC & MA)',
+    sec_refs_apac: 'Senarai APAC Ticket',
     sec_from_to: 'From & To',
     sec_items: 'Senarai Barang',
     sec_additional: 'Maklumat Tambahan',
-    lbl_no_rw: 'No RW',
+    lbl_no_rwrc: 'No RW / RC',
     lbl_no_ma: 'No MA',
     lbl_do_no_auto: 'No. DO (Auto)',
     lbl_apac: 'APAC Ticket',
@@ -526,38 +547,43 @@ const I18N = {
     lbl_note: 'Note',
     lbl_signer: 'Nama Pengesah / Signer',
     btn_add_item: '+ Tambah Item',
-    btn_add_ref: '+ Tambah RW / MA / APAC',
+    btn_add_ref: '+ Tambah RW / RC & MA',
+    btn_add_apac: '+ Tambah APAC Ticket',
     btn_submit: 'Jana DO & Simpan Rekod',
     btn_submit_loading: 'Sedang jana DO...',
     btn_download_pdf: 'Muat Turun PDF',
     btn_download_xlsx: 'Muat Turun Excel',
     btn_generate_new: '+ Jana DO Baru',
     result_title: 'DO berjaya dijana',
-    result_prefix: 'No. DO:',
-    ph_no_rw: 'cth: RW2606230802',
-    ph_no_ma: 'cth: MA2606230354 (optional)',
+    result_prefix: 'Report:',
+    ph_no_rwrc: 'cth: 2606230802',
+    ph_no_ma: 'cth: 2606230354 (optional)',
+    ph_apac: 'cth: 260515024031597',
     ph_truck: 'cth: - atau no. plat',
     ph_note: 'Nota tambahan (jika ada)',
     ph_signer: 'Nama authorized signer',
     item_label: 'Item',
     ref_label: 'Rujukan',
-    err_webapp_not_set: 'WEBAPP_URL belum diisi dalam kod. Sila deploy Apps Script dulu & update index.html.',
+    apac_label: 'APAC',
+    err_webapp_not_set: 'WEBAPP_URL belum diisi.',
     err_items_required: 'Sekurang-kurangnya 1 item diperlukan.',
     err_item_fields: 'Sila lengkapkan semua field dalam senarai barang.',
-    err_refs_required: 'Sekurang-kurangnya 1 rujukan RW diperlukan.',
-    err_ref_rw_required: 'Sila lengkapkan No RW untuk setiap rujukan (#',
+    err_refs_required: 'Sekurang-kurangnya 1 rujukan RW/RC diperlukan.',
+    err_ref_no_required: 'Sila lengkapkan No RW/RC untuk setiap rujukan (#',
     err_server_prefix: 'Gagal hubungi server:',
     err_unknown: 'Ralat tidak diketahui.',
     theme_dark: 'Dark',
     theme_light: 'Light'
   },
   en: {
-    app_subtitle: 'Key in the details, the system auto-fills the DO template & saves the record to the database.',
+    app_subtitle: 'Key in the details, system auto-fills DO template & saves to database.',
     sec_do_info: 'DO Information',
+    sec_refs_rwrc: 'Main References (RW/RC & MA)',
+    sec_refs_apac: 'APAC Ticket List',
     sec_from_to: 'From & To',
     sec_items: 'Item List',
     sec_additional: 'Additional Information',
-    lbl_no_rw: 'RW No.',
+    lbl_no_rwrc: 'RW / RC No.',
     lbl_no_ma: 'MA No.',
     lbl_do_no_auto: 'DO No. (Auto)',
     lbl_apac: 'APAC Ticket',
@@ -578,7 +604,8 @@ const I18N = {
     lbl_note: 'Note',
     lbl_signer: 'Signer Name',
     btn_add_item: '+ Add Item',
-    btn_add_ref: '+ Add RW / MA / APAC',
+    btn_add_ref: '+ Add RW / RC & MA',
+    btn_add_apac: '+ Add APAC Ticket',
     btn_submit: 'Generate DO & Save Record',
     btn_submit_loading: 'Generating DO...',
     btn_download_pdf: 'Download PDF',
@@ -586,18 +613,20 @@ const I18N = {
     btn_generate_new: '+ Generate New DO',
     result_title: 'DO generated successfully',
     result_prefix: 'Report:',
-    ph_no_rw: 'e.g. RW2606230802',
-    ph_no_ma: 'e.g. MA2606230354 (optional)',
+    ph_no_rwrc: 'e.g. 2606230802',
+    ph_no_ma: 'e.g. 2606230354 (optional)',
+    ph_apac: 'e.g. 260515024031597',
     ph_truck: 'e.g. - or plate no.',
     ph_note: 'Additional notes (if any)',
     ph_signer: "Authorized signer's name",
     item_label: 'Item',
     ref_label: 'Reference',
-    err_webapp_not_set: 'WEBAPP_URL is not set in the code yet. Deploy Apps Script first & update index.html.',
+    apac_label: 'APAC',
+    err_webapp_not_set: 'WEBAPP_URL is not set.',
     err_items_required: 'At least 1 item is required.',
     err_item_fields: 'Please complete all fields in the item list.',
-    err_refs_required: 'At least 1 RW reference is required.',
-    err_ref_rw_required: 'Please fill in RW No. for reference #',
+    err_refs_required: 'At least 1 RW/RC reference is required.',
+    err_ref_no_required: 'Please fill in RW/RC No. for reference #',
     err_server_prefix: 'Failed to reach server:',
     err_unknown: 'Unknown error.',
     theme_dark: 'Dark',
@@ -613,7 +642,6 @@ function applyLanguage(){
   document.documentElement.lang = currentLang;
   document.querySelectorAll('[data-i18n]').forEach(el => {
     const key = el.getAttribute('data-i18n');
-    // kekalkan span.req (*) dan span.opt (optional) yang ada dalam sesetengah label
     const reqSpan = el.querySelector('.req');
     const optSpan = el.querySelector('.opt');
     el.textContent = t(key);
@@ -631,10 +659,10 @@ document.getElementById('langToggle').addEventListener('click', () => {
   applyLanguage();
   renumberItems();
   renumberRefs();
+  renumberApacs();
   applyTheme();
 });
 
-// ---------------- THEME ----------------
 function applyTheme(){
   document.documentElement.setAttribute('data-theme', currentTheme);
   const themeToggle = document.getElementById('themeToggle');
@@ -653,10 +681,6 @@ document.getElementById('themeToggle').addEventListener('click', () => {
   applyTheme();
 });
 
-// ---------------- REF ROWS (No RW / No MA / APAC Ticket) ----------------
-// RW WAJIB setiap row. MA & APAC Ticket OPTIONAL setiap row (termasuk row
-// pertama) — boleh tambah lebih dari satu rujukan dalam SATU DO tanpa kena
-// paksa isi MA/APAC sekali.
 function addRefRow(){
   refCount++;
   const idx = refCount;
@@ -666,9 +690,23 @@ function addRefRow(){
   div.innerHTML = `
     <span class="item-tag">${t('ref_label')} ${idx}</span>
     <div class="ref-grid">
-      <div><label data-i18n="lbl_no_rw">${t('lbl_no_rw')} <span class="req">*</span></label><input type="text" class="f-rw" placeholder="${t('ph_no_rw')}" required></div>
-      <div><label data-i18n="lbl_no_ma">${t('lbl_no_ma')} <span class="opt">(optional)</span></label><input type="text" class="f-ma" placeholder="${t('ph_no_ma')}"></div>
-      <div><label data-i18n="lbl_apac">${t('lbl_apac')} <span class="opt">(optional)</span></label><input type="text" class="f-apac" placeholder="260515024031597"></div>
+      <div class="ref-type-input">
+        <div style="flex-shrink:0; width:75px;">
+          <label>Type</label>
+          <select class="f-ref-type" style="padding-left:5px; padding-right:5px;">
+            <option value="RW" selected>RW</option>
+            <option value="RC">RC</option>
+          </select>
+        </div>
+        <div style="flex:1;">
+          <label data-i18n="lbl_no_rwrc">${t('lbl_no_rwrc')} <span class="req">*</span></label>
+          <input type="text" class="f-ref-no" placeholder="${t('ph_no_rwrc')}" required>
+        </div>
+      </div>
+      <div>
+        <label data-i18n="lbl_no_ma">${t('lbl_no_ma')} <span class="opt">(optional)</span></label>
+        <input type="text" class="f-ma" placeholder="${t('ph_no_ma')}">
+      </div>
       <button type="button" class="btn-remove" title="Remove">&times;</button>
     </div>
   `;
@@ -679,7 +717,8 @@ function addRefRow(){
     renumberRefs();
     updateDoNoPreview();
   });
-  div.querySelector('.f-rw').addEventListener('input', updateDoNoPreview);
+  div.querySelector('.f-ref-type').addEventListener('change', updateDoNoPreview);
+  div.querySelector('.f-ref-no').addEventListener('input', updateDoNoPreview);
   div.querySelector('.f-ma').addEventListener('input', updateDoNoPreview);
 }
 
@@ -704,15 +743,64 @@ function collectRefs(){
   const refs = [];
   for (const row of rows){
     refs.push({
-      rw: row.querySelector('.f-rw').value.trim(),
-      ma: row.querySelector('.f-ma').value.trim(),
-      apacTicket: row.querySelector('.f-apac').value.trim()
+      type: row.querySelector('.f-ref-type').value,
+      no: row.querySelector('.f-ref-no').value.trim(),
+      ma: row.querySelector('.f-ma').value.trim()
     });
   }
   return refs;
 }
 
-// ---------------- ITEM ROWS ----------------
+function addApacRow(){
+  apacCount++;
+  const idx = apacCount;
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.dataset.idx = idx;
+  div.innerHTML = `
+    <span class="item-tag">${t('apac_label')} ${idx}</span>
+    <div class="apac-grid">
+      <div>
+        <label data-i18n="lbl_apac">${t('lbl_apac')}</label>
+        <input type="text" class="f-apac-val" placeholder="${t('ph_apac')}">
+      </div>
+      <button type="button" class="btn-remove" title="Remove">&times;</button>
+    </div>
+  `;
+  document.getElementById('apacContainer').appendChild(div);
+
+  div.querySelector('.btn-remove').addEventListener('click', () => {
+    div.remove();
+    renumberApacs();
+  });
+}
+
+function renumberApacs(){
+  const rows = document.querySelectorAll('#apacContainer .item-row');
+  rows.forEach((row, i) => {
+    row.querySelector('.item-tag').textContent = t('apac_label') + ' ' + (i + 1);
+  });
+  // APAC is fully optional, so user can remove all of them
+  document.querySelectorAll('#apacContainer .btn-remove').forEach(btn => {
+    btn.disabled = false;
+  });
+}
+
+document.getElementById('addApacBtn').addEventListener('click', () => {
+  addApacRow();
+  renumberApacs();
+});
+
+function collectApacs(){
+  const rows = document.querySelectorAll('#apacContainer .item-row');
+  const apacs = [];
+  for (const row of rows){
+    const val = row.querySelector('.f-apac-val').value.trim();
+    if(val) apacs.push(val);
+  }
+  return apacs;
+}
+
 function addItemRow(){
   itemCount++;
   const idx = itemCount;
@@ -761,10 +849,6 @@ document.getElementById('addItemBtn').addEventListener('click', () => {
   updateTotalCartonPreview();
 });
 
-// ---------------- AUTO DO NO ----------------
-// DO No dibina dari rujukan PERTAMA sahaja (RW wajib, MA optional). Rujukan
-// ke-2 dst cuma jadi rujukan tambahan (papar kat jadual PDF & Database),
-// TAK masuk dalam DO No supaya convention Sungrow sedia ada tak berubah.
 function normalizePart(val, prefix){
   let s = String(val || '').trim().toUpperCase();
   if (s && s.indexOf(prefix) !== 0) s = prefix + s;
@@ -773,24 +857,32 @@ function normalizePart(val, prefix){
 
 function updateDoNoPreview(){
   const preview = document.getElementById('doNoPreview');
-  const firstRow = document.querySelector('#refsContainer .item-row');
-  if (!firstRow){
+  
+  // Ambil semua rujukan untuk bina preview multi-line
+  const rows = document.querySelectorAll('#refsContainer .item-row');
+  const allDoNos = [];
+
+  rows.forEach(row => {
+    const type = row.querySelector('.f-ref-type').value; // RW or RC
+    const no = row.querySelector('.f-ref-no').value.trim();
+    const ma = row.querySelector('.f-ma').value.trim();
+    
+    if (no) {
+      let doNo = normalizePart(no, type);
+      if (ma) doNo += '_' + normalizePart(ma, 'MA');
+      doNo += '_JD';
+      allDoNos.push(doNo);
+    }
+  });
+
+  if (allDoNos.length === 0){
     preview.textContent = '—';
-    return;
+  } else {
+    // Papar dipisahkan oleh new line supaya nampak macam di PDF
+    preview.textContent = allDoNos.join('\n');
   }
-  const rw = firstRow.querySelector('.f-rw').value.trim();
-  const ma = firstRow.querySelector('.f-ma').value.trim();
-  if (!rw){
-    preview.textContent = '—';
-    return;
-  }
-  let doNo = normalizePart(rw,'RW');
-  if (ma) doNo += '_' + normalizePart(ma,'MA');
-  doNo += '_JD';
-  preview.textContent = doNo;
 }
 
-// ---------------- AUTO TOTAL CARTON/PALLET ----------------
 function updateTotalCartonPreview(){
   const rows = document.querySelectorAll('#itemsContainer .item-row');
   const groups = {};
@@ -810,9 +902,12 @@ function updateTotalCartonPreview(){
   preview.textContent = order.map(u => groups[u] + ' ' + u).join(', ');
 }
 
-// ---------------- INIT ----------------
+// INIT
 addRefRow();
 renumberRefs();
+// Initial APAC is optional, but let's add one empty row for convenience
+addApacRow();
+renumberApacs();
 addItemRow();
 renumberItems();
 updateTotalCartonPreview();
@@ -821,7 +916,6 @@ document.getElementById('date').valueAsDate = new Date();
 applyLanguage();
 applyTheme();
 
-// ---------------- FORM SUBMIT ----------------
 function showMsg(text, type){
   const box = document.getElementById('msgBox');
   box.textContent = text;
@@ -862,11 +956,13 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
     return;
   }
   for (let i = 0; i < refs.length; i++){
-    if (!refs[i].rw){
-      showMsg(t('err_ref_rw_required') + (i + 1) + ')', 'err');
+    if (!refs[i].no){
+      showMsg(t('err_ref_no_required') + (i + 1) + ')', 'err');
       return;
     }
   }
+
+  const apacs = collectApacs();
 
   const items = collectItems();
   if (items.length === 0){
@@ -882,6 +978,7 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
 
   const payload = {
     refs: refs,
+    apacs: apacs, // standalone array
     date: document.getElementById('date').value,
     fromName: FIXED_FROM.name,
     fromAddress: FIXED_FROM.address,
@@ -911,7 +1008,6 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
 
     if (result.success){
       document.getElementById('doForm').style.display = 'none';
-      // Paparkan nama report penuh yang merangkumi No Bilangan + DO No
       document.getElementById('resultDoNo').textContent = t('result_prefix') + ' ' + (result.reportName || result.doNo);
       document.getElementById('pdfLink').href = result.pdfUrl;
       document.getElementById('xlsxLink').href = result.xlsxUrl;
@@ -931,14 +1027,20 @@ document.getElementById('againBtn').addEventListener('click', () => {
   document.getElementById('doForm').reset();
   document.getElementById('itemsContainer').innerHTML = '';
   document.getElementById('refsContainer').innerHTML = '';
+  document.getElementById('apacContainer').innerHTML = '';
   itemCount = 0;
   refCount = 0;
+  apacCount = 0;
+  
   addRefRow();
   renumberRefs();
+  addApacRow();
+  renumberApacs();
   addItemRow();
   renumberItems();
   updateTotalCartonPreview();
   updateDoNoPreview();
+  
   document.getElementById('date').valueAsDate = new Date();
   document.getElementById('resultBox').classList.remove('show');
   document.getElementById('doForm').style.display = 'block';
