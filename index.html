@@ -16,6 +16,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
+    <!-- PDF & ZIP Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -82,6 +88,28 @@
                     <i class="fa-solid fa-file-signature mr-2"></i>Submit Form <i class="fa-solid fa-external-link-alt text-[10px] ml-1"></i>
                 </a>
             </nav>
+        </div>
+
+        <!-- Global Date Filters -->
+        <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-calendar-day text-slate-400"></i>
+                <span class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Filter Tarikh:</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-slate-500 font-medium">Mula</label>
+                    <input type="date" id="filterStartDate" onchange="applyFilters()" class="border border-slate-300 rounded px-2 py-1.5 text-sm focus:ring-sky-500 focus:border-sky-500">
+                </div>
+                <span class="text-slate-400 hidden sm:block">-</span>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-slate-500 font-medium">Akhir</label>
+                    <input type="date" id="filterEndDate" onchange="applyFilters()" class="border border-slate-300 rounded px-2 py-1.5 text-sm focus:ring-sky-500 focus:border-sky-500">
+                </div>
+                <button onclick="clearDateFilter()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-md transition border border-slate-200">
+                    <i class="fa-solid fa-eraser mr-1"></i> Clear
+                </button>
+            </div>
         </div>
 
         <!-- DASHBOARD VIEW -->
@@ -157,10 +185,20 @@
         <!-- TRANSACTIONS VIEW -->
         <div id="view-transactions" class="hidden">
             <div class="bg-white rounded-lg border border-slate-200 powerbi-card overflow-hidden">
-                <div class="p-4 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider">Detailed Transactions</h3>
-                    <div class="relative w-full sm:w-72">
-                        <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Search DO, Truck, Ref..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
+                <div class="p-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
+                        <h3 class="text-sm font-semibold text-slate-600 uppercase tracking-wider whitespace-nowrap">Detailed Transactions</h3>
+                        <div class="flex gap-2 w-full sm:w-auto">
+                            <button onclick="exportTableToPDF()" class="bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-3 py-1.5 rounded-md text-sm transition flex items-center justify-center gap-1 shadow-sm whitespace-nowrap w-full sm:w-auto">
+                                <i class="fa-solid fa-file-pdf"></i> PDF List
+                            </button>
+                            <button onclick="downloadZip()" id="btn-zip" class="bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 px-3 py-1.5 rounded-md text-sm transition flex items-center justify-center gap-1 shadow-sm whitespace-nowrap w-full sm:w-auto">
+                                <i class="fa-solid fa-file-zipper"></i> Zip PDFs
+                            </button>
+                        </div>
+                    </div>
+                    <div class="relative w-full md:w-72 shrink-0">
+                        <input type="text" id="searchInput" onkeyup="applyFilters()" placeholder="Search DO, Truck, Ref..." class="w-full pl-10 pr-4 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400"></i>
                     </div>
                 </div>
@@ -309,18 +347,11 @@
                         // Sort Descending (Newest First)
                         allData = results.data.sort((a, b) => new Date(b.Timestamp) - new Date(a.Timestamp));
                         
-                        // Apply current filter if exists
-                        const query = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
-                        if(query) {
-                           applyFilterData(query);
-                        } else {
-                           filteredData = [...allData];
-                        }
-                        
-                        // Save to cache
+                        // Save to cache sebelum filtering
                         localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
                         
-                        processData();
+                        // Apply all filters (search text & date) dan render dashboard
+                        applyFilters();
                         
                         const now = new Date();
                         document.getElementById('lastUpdated').innerText = `Last updated: ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -556,15 +587,26 @@
             renderTable();
         }
 
-        function filterTable() {
-            const query = document.getElementById('searchInput').value.toLowerCase();
-            currentPage = 1; 
-            applyFilterData(query);
-            processData();
+        function clearDateFilter() {
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            applyFilters();
         }
-        
-        function applyFilterData(query) {
-             filteredData = allData.filter(row => {
+
+        function applyFilters() {
+            const query = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+            const startStr = document.getElementById('filterStartDate') ? document.getElementById('filterStartDate').value : '';
+            const endStr = document.getElementById('filterEndDate') ? document.getElementById('filterEndDate').value : '';
+
+            // Set masa ke hujung/awal hari supaya filter merangkumi keseluruhan hari tersebut
+            let startD = startStr ? new Date(startStr) : null;
+            if(startD) startD.setHours(0,0,0,0);
+            
+            let endD = endStr ? new Date(endStr) : null;
+            if(endD) endD.setHours(23,59,59,999);
+
+            filteredData = allData.filter(row => {
+                // 1. Text Search Filter
                 const searchString = [
                     row['DO No'], 
                     row['Truck'], 
@@ -572,8 +614,143 @@
                     row['To Name'],
                     row['RW/MA/APAC List (JSON)']
                 ].join(' ').toLowerCase();
-                return searchString.includes(query);
+                const matchText = searchString.includes(query);
+
+                // 2. Date Filter
+                let matchDate = true;
+                if (startD || endD) {
+                    const rowDate = new Date(row['Date']);
+                    if (!isNaN(rowDate.getTime())) {
+                        if (startD && rowDate < startD) matchDate = false;
+                        if (endD && rowDate > endD) matchDate = false;
+                    } else {
+                        // Tolak row jika date tidak diisi dan ada filter aktif
+                        matchDate = false; 
+                    }
+                }
+
+                return matchText && matchDate;
             });
+
+            currentPage = 1; 
+            processData();
+        }
+
+        function exportTableToPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Dapatkan filter bulanan untuk tajuk PDF
+            let title = "Senarai Transaksi Keseluruhan";
+            const startStr = document.getElementById('filterStartDate').value;
+            if(startStr) {
+                const d = new Date(startStr);
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                title = `GCC ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+            }
+
+            doc.setFontSize(14);
+            doc.text(title, 14, 15);
+            
+            const tableColumn = ["Tarikh", "No DO", "Truck", "Penghantar", "Penerima", "Items", "Cartons"];
+            const tableRows = [];
+
+            filteredData.forEach(row => {
+                const rowData = [
+                    row['Date'] || '-',
+                    row['DO No'] || '-',
+                    row['Truck'] || '-',
+                    truncate(row['From Name'] || '-', 25),
+                    truncate(row['To Name'] || '-', 25),
+                    row['Total Items'] || '0',
+                    row['Total Carton/Pallet'] || '0'
+                ];
+                tableRows.push(rowData);
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 20,
+                styles: { fontSize: 8, font: 'helvetica' },
+                headStyles: { fillColor: [14, 165, 233] },
+                margin: { top: 20 }
+            });
+
+            doc.save(`${title.replace(/ /g, '_')}_List.pdf`);
+        }
+
+        async function downloadZip() {
+            const btn = document.getElementById('btn-zip');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyediakan Zip...';
+            btn.disabled = true;
+
+            try {
+                const zip = new JSZip();
+                let hasFiles = false;
+
+                // Nama File Zip: GCC Bulan Tahun.zip
+                let zipName = "GCC_Semua_Dokumen.zip";
+                const startStr = document.getElementById('filterStartDate').value;
+                if(startStr) {
+                    const d = new Date(startStr);
+                    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                    zipName = `GCC ${monthNames[d.getMonth()]} ${d.getFullYear()}.zip`;
+                }
+
+                // Dapatkan rekod yang mempunyai link PDF
+                const pdfRows = filteredData.filter(r => r['PDF Link'] && r['PDF Link'].trim() !== '');
+
+                if(pdfRows.length === 0) {
+                    alert("Tiada fail PDF dijumpai dalam senarai tapisan (filter) ini.");
+                    btn.innerHTML = originalHtml;
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Loop senarai DO dan fetch secara automatik
+                for(let i=0; i<pdfRows.length; i++) {
+                    const row = pdfRows[i];
+                    let url = row['PDF Link'];
+                    let fileName = `DO_${row['DO No'] || i+1}.pdf`.replace(/[^a-zA-Z0-9.\-_]/g, '_'); 
+                    
+                    try {
+                        let fetchUrl = url;
+                        // Workaround untuk bypass Google Drive Viewer dan terus Download Data Blob
+                        const match = url.match(/\/d\/(.+?)\//);
+                        if(match && match[1]) {
+                            fetchUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                            // Menggunakan Public CORS Proxy kerana Client-Side JS akan di block oleh Google.
+                            fetchUrl = `https://corsproxy.io/?${encodeURIComponent(fetchUrl)}`;
+                        }
+
+                        const response = await fetch(fetchUrl);
+                        if(response.ok) {
+                            const blob = await response.blob();
+                            zip.file(fileName, blob);
+                            hasFiles = true;
+                        } else {
+                            console.warn(`Gagal memuat turun PDF untuk ${fileName}`);
+                        }
+                    } catch(err) {
+                        console.error(`CORS Error untuk fail ${fileName}`, err);
+                    }
+                }
+
+                if(hasFiles) {
+                    const content = await zip.generateAsync({type:"blob"});
+                    saveAs(content, zipName);
+                } else {
+                    alert("Ralat memuat turun PDF ke Zip. Pautan mungkin disekat sekuriti (CORS) Google Drive.");
+                }
+            } catch(e) {
+                console.error("Ralat Proses Zip:", e);
+                alert("Terdapat ralat semasa memproses fail Zip.");
+            }
+
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
         }
 
         function switchTab(tabName) {
