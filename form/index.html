@@ -430,15 +430,22 @@
         <div class="subblock">
           <h3>
             <span data-i18n="lbl_from_title">From (Penghantar)</span>
-            <span class="fixed-tag" data-i18n="lbl_fixed">(Tetap)</span>
           </h3>
-          <!-- From dikunci -->
-          <div class="preview-box from-fixed-box">
-            <div class="from-name">JingDong Logistics</div>
-            <div class="from-line">2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor</div>
-            <div class="from-line"><span data-i18n="lbl_attn">ATTN</span>: Prema Mahalingam</div>
-            <div class="from-line"><span data-i18n="lbl_tel">Tel</span>: 6012-396 1012</div>
+          <div class="field" style="margin-bottom: 15px;">
+            <select id="fromPreset" style="background-color: var(--preview-bg); font-weight: bold; color: var(--accent-2); border-color: var(--preview-line);">
+              <option value="jingdong">JingDong Logistics</option>
+              <option value="koennen">Koennen Technology Sdn Bhd</option>
+              <option value="custom" data-i18n="opt_custom">Custom / Lain-lain</option>
+            </select>
           </div>
+          <div class="field"><label data-i18n="lbl_company">Nama Syarikat <span class="req">*</span></label>
+            <input type="text" id="fromName" required></div>
+          <div class="field"><label data-i18n="lbl_address">Alamat</label>
+            <textarea id="fromAddress"></textarea></div>
+          <div class="field"><label data-i18n="lbl_attn">ATTN</label>
+            <input type="text" id="fromAttn"></div>
+          <div class="field"><label data-i18n="lbl_tel">Tel</label>
+            <input type="text" id="fromTel"></div>
         </div>
         <div class="subblock">
           <h3 data-i18n="lbl_to_title">To (Penerima)</h3>
@@ -510,11 +517,19 @@ let apacCount = 0;
 let currentLang = 'ms';
 let currentTheme = 'light';
 
-const FIXED_FROM = {
-  name: 'JingDong Logistics',
-  address: '2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor',
-  attn: 'Prema Mahalingam',
-  tel: '6012-396 1012'
+const FROM_PRESETS = {
+  jingdong: {
+    name: 'JingDong Logistics',
+    address: '2, Metrohub 2 - Warehouse 2, 1st Floor, Lot 109363, Persiaran Bukit Raja Kayangan/KU5, Bandar Bukit Raja, 41050 Klang, Selangor',
+    attn: 'Prema Mahalingam',
+    tel: '6012-396 1012'
+  },
+  koennen: {
+    name: 'Koennen Technology Sdn Bhd',
+    address: '29 Jalan 6/89B, Off, Jln Sungai Besi, 57100 Kuala Lumpur',
+    attn: 'Azila / Naim',
+    tel: '6013-2810042 / 6014-8141800'
+  }
 };
 
 const I18N = {
@@ -573,7 +588,8 @@ const I18N = {
     err_server_prefix: 'Gagal hubungi server:',
     err_unknown: 'Ralat tidak diketahui.',
     theme_dark: 'Dark',
-    theme_light: 'Light'
+    theme_light: 'Light',
+    opt_custom: 'Custom / Lain-lain'
   },
   en: {
     app_subtitle: 'Key in the details, system auto-fills DO template & saves to database.',
@@ -630,7 +646,8 @@ const I18N = {
     err_server_prefix: 'Failed to reach server:',
     err_unknown: 'Unknown error.',
     theme_dark: 'Dark',
-    theme_light: 'Light'
+    theme_light: 'Light',
+    opt_custom: 'Custom / Other'
   }
 };
 
@@ -679,6 +696,21 @@ function applyTheme(){
 document.getElementById('themeToggle').addEventListener('click', () => {
   currentTheme = currentTheme === 'light' ? 'dark' : 'light';
   applyTheme();
+});
+
+document.getElementById('fromPreset').addEventListener('change', (e) => {
+  const val = e.target.value;
+  if (FROM_PRESETS[val]) {
+    document.getElementById('fromName').value = FROM_PRESETS[val].name;
+    document.getElementById('fromAddress').value = FROM_PRESETS[val].address;
+    document.getElementById('fromAttn').value = FROM_PRESETS[val].attn;
+    document.getElementById('fromTel').value = FROM_PRESETS[val].tel;
+  } else if (val === 'custom') {
+    document.getElementById('fromName').value = '';
+    document.getElementById('fromAddress').value = '';
+    document.getElementById('fromAttn').value = '';
+    document.getElementById('fromTel').value = '';
+  }
 });
 
 function addRefRow(){
@@ -913,6 +945,7 @@ renumberItems();
 updateTotalCartonPreview();
 updateDoNoPreview();
 document.getElementById('date').valueAsDate = new Date();
+document.getElementById('fromPreset').dispatchEvent(new Event('change')); // Initialize default preset
 applyLanguage();
 applyTheme();
 
@@ -980,10 +1013,10 @@ document.getElementById('doForm').addEventListener('submit', async (e) => {
     refs: refs,
     apacs: apacs, // standalone array
     date: document.getElementById('date').value,
-    fromName: FIXED_FROM.name,
-    fromAddress: FIXED_FROM.address,
-    fromAttn: FIXED_FROM.attn,
-    fromTel: FIXED_FROM.tel,
+    fromName: document.getElementById('fromName').value.trim(),
+    fromAddress: document.getElementById('fromAddress').value.trim(),
+    fromAttn: document.getElementById('fromAttn').value.trim(),
+    fromTel: document.getElementById('fromTel').value.trim(),
     toName: document.getElementById('toName').value.trim(),
     toAddress: document.getElementById('toAddress').value.trim(),
     toAttn: document.getElementById('toAttn').value.trim(),
@@ -1042,6 +1075,8 @@ document.getElementById('againBtn').addEventListener('click', () => {
   updateDoNoPreview();
   
   document.getElementById('date').valueAsDate = new Date();
+  document.getElementById('fromPreset').value = 'jingdong';
+  document.getElementById('fromPreset').dispatchEvent(new Event('change'));
   document.getElementById('resultBox').classList.remove('show');
   document.getElementById('doForm').style.display = 'block';
   clearMsg();
